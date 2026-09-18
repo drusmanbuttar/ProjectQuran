@@ -1,0 +1,67 @@
+name: Android APK and offline backup tests
+on:
+  push:
+    branches: [android-offline]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.19.0'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: pnpm install --frozen-lockfile
+      - name: Validate Quran data and research behavior
+        run: |
+          pnpm run check
+          node scripts/check-catalog.mjs
+          node scripts/check-behavior.mjs
+      - name: Prepare bundled offline assets
+        run: pnpm exec cap sync android
+      - name: Build Android and test UTF-8 backup IO
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:assembleDebugAndroidTest --no-daemon
+      - name: Upload installable test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectQuran-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android offline and backup integration tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb shell svc wifi disable
+            adb shell svc data disable
+            cd android && ./gradlew :app:connectedDebugAndroidTest --no-daemon
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProjectQuran-Android-Test-Reports
+          path: |
+            android/app/build/reports
+            android/app/build/outputs/androidTest-results
+          retention-days: 30

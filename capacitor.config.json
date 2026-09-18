@@ -1,0 +1,6 @@
+{
+  "appId": "com.drusmanbuttar.projectquran",
+  "appName": "ProjectQuran",
+  "webDir": "dist",
+  "android": { "backgroundColor": "#102e3c" }
+}
