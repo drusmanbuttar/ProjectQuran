@@ -23,9 +23,15 @@ jobs:
           node-version: '22'
       - run: npm run check && node scripts/check-catalog.mjs
       - uses: actions/configure-pages@v5
+      - name: Prepare the same layout as branch-based Pages
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp -R dist _site/dist
+          touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: _site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
