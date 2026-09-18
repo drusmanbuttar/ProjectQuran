@@ -57,6 +57,14 @@ public class OfflineBackupTest {
         JSONObject exported=new JSONObject(read(output));assertEquals("ProjectQuran",exported.getString("format"));
         assertEquals("تحقیق — آدم",exported.getJSONArray("notes").getJSONObject(0).getString("title"));
         assertEquals("2:255",exported.getJSONArray("saved").getString(0));
+        // Restore the actual exported bytes after removing all local research.
+        write(input,read(output));
+        js("localStorage.removeItem('pq-research');localStorage.removeItem('pq-notes');localStorage.removeItem('pq-saved')");
+        scenario.recreate();until("document.querySelector('.event-card')!==null||document.getElementById('import-notes')!==null");
+        js("location.hash='notebook'");until("document.getElementById('import-notes')!==null");
+        assertEquals("0",js("document.querySelectorAll('.research-entry').length"));
+        js("document.getElementById('import-notes').click()");until("document.querySelectorAll('.research-entry').length===1");
+        assertEquals("true",js("document.querySelector('.research-entry').textContent.includes('Arabic اردو round trip')"));
         // A second import preserves data without duplicates.
         js("document.getElementById('import-notes').click()");until("document.getElementById('toast').textContent.includes('Imported 0')");
         // Recreate the Android Activity: persistent notes must survive.
