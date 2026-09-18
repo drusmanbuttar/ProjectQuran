@@ -9,7 +9,7 @@
     "title": "My research finding",
     "body": "Write the researcher's commentary, not a substitute Quran text.",
     "refs": ["2:30-39"],
-    "chapter": "Chapter 1",
+    "chapter": "",
     "topic": "creation",
     "track": "origins",
     "evidence": "Research note",
@@ -19,6 +19,6 @@
 }
 ```
 
-Imports create new local IDs and deduplicate matching title/body/reference combinations. Unknown topics or paths are cleared. Invalid verse ranges reject the import. Limits: 10 MB per backup, 10,000 notes, 200-character titles and 20,000-character bodies. The chapter field is a personal research chapter, independent of juz or surah.
+Imports create new local IDs and deduplicate matching title/body/reference combinations. Unknown topics or paths are cleared. Invalid verse ranges reject the import. Limits: 10 MB per backup, 10,000 notes, 200-character titles and 20,000-character bodies. The topic field selects one of the 30 proposed Quranic research categories. The optional chapter field preserves legacy labels; it does not map a numbered chapter to a category. New notes use the category directly. Both remain independent of juz and surah.
 
 Valid theme IDs and path IDs are in `dist/catalog.js`. Source citations are plain text. No HTML is interpreted. User research stays labelled draft. No imported note is automatically promoted to Quran text or authoritative scholarship.

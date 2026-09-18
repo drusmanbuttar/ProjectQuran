@@ -7,5 +7,7 @@ for(const item of [...prophets,...topics,...Object.values(tracks).flatMap(t=>t.e
  assert(item.refs.length>0);
  for(const ref of item.refs){const match=/^(\d+):(\d+)(?:-(\d+))?$/.exec(ref);assert(match,ref);const [,s,a,b]=match;assert(+a>0&&+a<=+(b||a)&&+(b||a)<=ar[s].length,ref);refs++}
 }
-assert.equal(prophets.length,25);assert.equal(topics.length,16);assert.equal(new Set(prophets.map(p=>p.id)).size,25);
+assert.equal(prophets.length,25);assert.equal(topics.length,30);assert.equal(new Set(prophets.map(p=>p.id)).size,25);
 console.log(`PASS: ${refs} passage references resolve to valid Quranic verses across prophets, topics and all timeline paths.`);
+
+assert.equal(new Set(topics.map(t=>t.id)).size,30);

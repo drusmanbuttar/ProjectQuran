@@ -11,10 +11,10 @@ No build step or third-party client libraries are required. Serve `dist/` with a
 ## Included
 
 - Four distinct study paths: creation, prophetic narratives, revelation/community, and the Hereafter.
-- Selected passages for 25 commonly listed Quranic prophets and 16 themes. These are editorial starter indexes, not exhaustive verse classifications.
+- Selected passages for 25 commonly listed Quranic prophets and 30 proposed thematic research categories. These are editorial starter indexes, not exhaustive verse classifications.
 - Full Arabic text, Pickthall English translation, and Junagarhi Urdu translation with translator notes.
 - 114 surahs, 30 juz, traditional Meccan/Medinan classification, and full-text/reference search.
-- Saved verses and research drafts, with source citations, evidence type, theme, timeline path and one of 30 personal research chapters.
+- Saved verses and research drafts, with source citations, evidence type, theme, timeline path and one of 30 proposed thematic research categories, separately from the 30 juz.
 - Non-destructive JSON backup import and export. All notes/bookmarks are device-local; there is no server sync.
 - Responsive installable web app with offline text caching. This is not a native app-store release.
 
@@ -39,6 +39,10 @@ Run `npm run check` and `node scripts/check-catalog.mjs`. No dependency installa
 ## Publishing
 
 `dist/` can be hosted by any static HTTPS host. The included GitHub Actions workflow publishes it through GitHub Pages when Pages is configured to use GitHub Actions. Private repositories may require an eligible GitHub plan. Do not make the repository public as a workaround without the owner's instruction. The private Sites preview is a separate deployment of the same files.
+
+## Category structure
+
+The founder clarified that the 30 research chapters are Quranic topics, not juz. The new 30-category structure is an editorial proposal, not recovered original titles. Existing chapter labels and topic IDs remain compatible with version 1 backups. English and Urdu can now appear together alongside Arabic. See `docs/categories.md` for the complete proposed index.
 
 ## Next research phase
 

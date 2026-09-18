@@ -43,6 +43,20 @@ export const topics=[
 ['judgment','Judgment & accountability','The record, the balance, and recompense.',['99:1-8','21:47','18:49','84:7-12','101:6-11']],
 ['paradise','Jannah · Paradise','Descriptions of reward and peace in the Hereafter.',['47:15','55:46-78','56:10-40','76:5-22','89:27-30']],
 ['hell','Jahannam · Hell','Warnings, consequences, and accountability.',['4:56','67:6-11','78:21-30','39:71-72','74:26-31']]
+,["prophethood","Prophets & messengers","The mission of messengers and lessons from their narratives.",["4:163-165","6:83-90","21:25","12:111"]],
+["revelation","Revelation & scripture","The Quran, earlier scriptures, and the sending of guidance.",["2:97","3:3-4","16:44","42:51","97:1-5"]],
+["angels","Angels & jinn","Passages about angels and jinn, with distinct roles and descriptions.",["35:1","66:6","72:1-15","55:14-15"]],
+["humanity","Human origins & dignity","Human creation, responsibility, diversity, and dignity.",["2:30-39","17:70","23:12-14","49:13"]],
+["prayer","Prayer & purification","Prayer, preparation for prayer, and cleanliness.",["4:43","5:6","17:78-79","20:14","29:45"]],
+["fasting","Fasting & Ramadan","The fast, its purpose, and the month of Ramadan.",["2:183-187"]],
+["pilgrimage","Hajj & sacred places","Pilgrimage, the Sacred House, and rites of worship.",["2:125-129","2:196-203","3:96-97","22:26-37"]],
+["charity","Zakat & care for others","Giving, recipients of charity, and care for those in need.",["2:177","2:261-274","9:60","107:1-7"]],
+["inheritance","Inheritance & bequests","Inheritance passages and the responsibilities of bequests.",["4:7-12","4:176","2:180-182"]],
+["food","Food & lawful living","Food, lawful provision, and prohibitions.",["2:168-173","5:1-5","5:90-91","16:114-116"]],
+["peace","Conflict, peace & treaties","Conflict and restraint, reconciliation, and keeping peace agreements. Read each passage in context.",["2:190-193","8:61","9:4","49:9-10","60:8-9"]],
+["covenants","Trusts, promises & testimony","Fulfilling agreements, safeguarding trusts, and bearing witness.",["4:58","4:135","5:1","16:91-92","23:8"]],
+["supplication","Supplication & remembrance","Calling upon Allah and remembering Him.",["2:186","7:55-56","13:28","33:41-42","40:60"]],
+["hypocrisy","Sincerity & hypocrisy","Inner intention, outward claims, and the call to sincere faith.",["2:8-20","4:142-146","63:1-8","98:5"]]
 ].map(([id,name,description,refs])=>({id,name,description,refs}));
 export const tracks={
 origins:{name:'Creation & beginnings',description:'Quranic passages about creation. The reading order below does not assert a dated sequence or an exhaustive cosmology.',events:[

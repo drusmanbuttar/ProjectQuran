@@ -2,7 +2,7 @@ import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:asser
 const data={};for(const n of ['arabic','english','urdu','metadata'])data[n]=JSON.parse(fs.readFileSync(new URL('../dist/'+n+'.json',import.meta.url)));
 const nodes=new Map(),handlers={};const node=s=>{if(!nodes.has(s))nodes.set(s,{innerHTML:'',textContent:'',style:{},dataset:{},value:'',hidden:false,open:false,scrollIntoView(){},focus(){},showModal(){this.open=true},close(){this.open=false},classList:{toggle(){}},setAttribute(){},removeAttribute(){},click(){}});return nodes.get(s)};
 const memory=new Map();const context=vm.createContext({prophets,topics,tracks,console,setTimeout,clearTimeout,URL,Blob,crypto:webcrypto,location:{hash:'#timeline'},history:{replaceState(a,b,h){context.location.hash=h}},localStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v)},navigator:{},window:{addEventListener(){},scrollTo(){}},document:{querySelector:node,querySelectorAll:()=>[],addEventListener:(k,f)=>handlers[k]=f,createElement:()=>node('a')},fetch:async url=>({ok:true,json:async()=>data[url.match(/\.\/(\w+)\.json/)[1]]})});
-let source=fs.readFileSync(new URL('../dist/app.js',import.meta.url),'utf8').replace(/^import .*?;\n/,'').replace(/boot\(\);\s*$/,'');vm.runInContext(source,context);await vm.runInContext('boot()',context);
+let source=fs.readFileSync(new URL('../dist/app.js',import.meta.url),'utf8').replace(/^import .*?;\r?\n/,'').replace(/boot\(\);\s*$/,'');vm.runInContext(source,context);await vm.runInContext('boot()',context);
 assert(node('#main').innerHTML.includes('Creation & beginnings'));
 assert.equal(vm.runInContext('flat.length',context),6236);
 assert.equal(vm.runInContext("refsExpand(['2:30-39','2:30']).length",context),10);
@@ -17,3 +17,20 @@ const backup={format:'ProjectQuran',version:1,notes:[{title:'<img src=x onerror=
 backup.notes[0].refs=['115:1'];await vm.runInContext('importNotes(testFile)',context);assert.equal(vm.runInContext('notes.length',context),1);
 vm.runInContext("track='origins';renderTimeline()",context);assert(node('#main').innerHTML.includes('Your connected research'));
 console.log('PASS: actual app functions render all views; open prophet verses; switch Urdu; search references, Arabic and English; import/deduplicate research; escape untrusted text; reject invalid imports; connect research to timelines. DOM stubs used, not a browser layout test.');
+
+vm.runInContext("language='both';openDetail(topics.find(t=>t.id==='charity'))",context);
+assert(node('#detail-body').innerHTML.includes('lang="en"'));
+assert(node('#detail-body').innerHTML.includes('lang="ur"'));
+assert(node('#detail-body').innerHTML.includes('lang="ar"'));
+assert(node('#detail-body').innerHTML.includes('data-category-notes="charity"'));
+vm.runInContext("renderTopics()",context);
+assert(node('#main').innerHTML.includes('30 research categories'));
+assert.equal((node('#main').innerHTML.match(/class="topic-card"/g)||[]).length,30);
+vm.runInContext("notebookTopic='charity';renderNotebook();editNote()",context);
+assert(node('#main').innerHTML.includes('0 research notes'));
+assert(node('#note-editor').innerHTML.includes('value="charity" selected'));
+vm.runInContext("notebookTopic='creation';renderNotebook()",context);
+assert(node('#main').innerHTML.includes('1 research notes'));
+vm.runInContext("notes[0].chapter='Chapter 8';editNote(notes[0].id)",context);
+assert(node('#note-editor').innerHTML.includes('value="Chapter 8"'));
+console.log('PASS: all three languages together; 30 category cards; category-to-notebook links; filtered note lists; new-note category default; legacy chapter label preservation.');
