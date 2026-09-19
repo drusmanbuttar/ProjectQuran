@@ -5,3 +5,12 @@ node_modules/
 *.jks
 *.keystore
 mobile-test-results/
+
+*.p12
+*.p8
+*.mobileprovision
+*.key
+*.csr
+*.cer
+*.ipa
+*.xcarchive/
