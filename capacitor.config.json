@@ -1,0 +1,10 @@
+{
+  "appId": "com.drusmanbuttar.projectquran",
+  "appName": "ProjectQuran",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "automatic",
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#081a14"
+  }
+}
