@@ -2,6 +2,15 @@ name: Build and upload PockettQuran to TestFlight
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dist/**'
+      - 'ios/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
 
 permissions:
   contents: read
