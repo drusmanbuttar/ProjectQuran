@@ -1,4 +1,4 @@
-const CACHE='projectquran-v2';
+const CACHE='pockett-quran-v3';
 const FILES=['./','./index.html','./style.css','./app.js','./catalog.js','./arabic.json','./english.json','./urdu.json','./metadata.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./sources.json','./DATA-LICENSE.txt','./TANZIL-LICENSE.txt'];
 async function notify(message){for(const client of await self.clients.matchAll({includeUncontrolled:true}))client.postMessage(message)}
 async function prepare(){const cache=await caches.open(CACHE);try{await cache.addAll(FILES);await notify('OFFLINE_READY')}catch{await notify('OFFLINE_FAILED')}}

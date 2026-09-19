@@ -1,8 +1,8 @@
-# ProjectQuran — App Store submission
+# Pockett Quran — App Store submission
 
 ## App identity
 
-- App name: ProjectQuran
+- App name: Pockett Quran
 - Subtitle: A Connected Study of the Quran
 - Bundle ID: `com.drusmanbuttar.projectquran`
 - Version: 1.0
@@ -19,11 +19,11 @@ Explore the Quran through connected themes, prophetic narratives, events and a s
 
 **Description**
 
-ProjectQuran is a source-linked research and study application for exploring the Quran as a connected body of guidance.
+Pockett Quran is a source-linked study application for exploring the Quran as a connected body of guidance.
 
 Read the complete Arabic text alongside English and Urdu translations. Browse all 114 surahs and 30 juz, then explore thematic categories, events and prophetic narratives that bring related verses together across the Quran.
 
-ProjectQuran is designed for careful study. Source information and licensing are included, while editorial topic and event links are clearly presented as a developing research framework. Core content is bundled for reliable access without creating an account.
+Pockett Quran is designed for careful study. Source information and licensing are included, while editorial topic and event links are clearly presented as a developing study framework. Core content is bundled for reliable access without creating an account.
 
 Key features:
 
@@ -55,7 +55,7 @@ Quran,Islam,Islamic,study,Arabic,Urdu,English,prophets,timeline,research
 
 ## Review notes
 
-ProjectQuran is a reading and educational research application. It does not require login credentials. Quranic text, translations and core research content are included with the app and can be tested immediately after launch. Source attribution and licensing information are available within the application.
+Pockett Quran is a reading and educational application. It does not require login credentials. Quranic text, translations and core study content are included with the app and can be tested immediately after launch. Source attribution and licensing information are available within the application.
 
 ## Final actions in Xcode and App Store Connect
 
