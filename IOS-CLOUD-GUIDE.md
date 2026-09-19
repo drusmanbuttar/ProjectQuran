@@ -4,6 +4,10 @@ Pocket Quran uses GitHub's macOS computers to build the iPhone app. The source i
 
 An unsigned archive is a build check and backup, not an installable iPhone app. Installing through TestFlight requires active paid Apple Developer Program membership, signing credentials, an App Store Connect app record, and a successful upload. Having a free Apple developer login alone is insufficient. The signed workflow still needs validation with your account's credentials.
 
+## Start here if you have not enrolled
+
+Open [Apple Developer Program enrollment](https://developer.apple.com/programs/enroll/) and enroll using your own Apple Account with two-factor authentication. Apple currently lists membership at USD 99 per year, with regional pricing shown during enrollment. For individual enrollment, Apple displays your legal name as the App Store seller; the Google Play display name Spiritual Developer does not automatically become your Apple seller name. After Apple activates membership, continue below. No membership purchase is needed to keep working on the source or run the unsigned GitHub checks.
+
 ## 1. Create Apple's app records
 
 In [Apple Developer](https://developer.apple.com/account/), open Certificates, Identifiers & Profiles → Identifiers → + → App IDs → App.

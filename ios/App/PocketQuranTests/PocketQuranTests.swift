@@ -23,16 +23,21 @@ final class PocketQuranTests: XCTestCase {
     }
     private func picker(_ vc: PocketViewController) async throws -> UIDocumentPickerViewController {
         for _ in 0..<100 {
-            if let value = vc.presentedViewController as? UIDocumentPickerViewController { return value }
+            if let value = vc.presentedViewController as? UIDocumentPickerViewController, !value.isBeingPresented { return value }
             try await Task.sleep(nanoseconds: 100_000_000)
         }
         throw NSError(domain: "PocketTests", code: 3, userInfo: [NSLocalizedDescriptionKey: "Files picker did not appear"])
+    }
+    private func dismissPicker(_ picker: UIDocumentPickerViewController) async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            picker.dismiss(animated: false) { continuation.resume() }
+        }
     }
     private func importFile(_ file: URL, vc: PocketViewController, web: WKWebView) async throws {
         _ = try await web.evaluateJavaScript("document.getElementById('import-notes').click(); true")
         let presented = try await picker(vc)
         vc.researchBackup.documentPicker(presented, didPickDocumentsAt: [file])
-        presented.dismiss(animated: false)
+        await dismissPicker(presented)
     }
     func testBundledReadingAndNativeBackupRecovery() async throws {
         let vc = try await controller(); let web = try XCTUnwrap(vc.webView)
@@ -68,7 +73,7 @@ final class PocketQuranTests: XCTestCase {
         XCTAssertTrue(exportedText.contains("تحقیق — آدم")); XCTAssertTrue(exportedText.contains("2:255"))
         try BackupCodec.encode(exportedText).write(to: input)
         vc.researchBackup.documentPicker(exportPicker, didPickDocumentsAt: [input])
-        exportPicker.dismiss(animated: false)
+        await dismissPicker(exportPicker)
         try await until("document.getElementById('toast').textContent.includes('Backup saved')", web: web)
         _ = try await web.evaluateJavaScript("localStorage.clear(); document.body.dataset.old='yes';location.reload(); true")
         try await until("document.body.dataset.old!=='yes'&&document.getElementById('import-notes')!==null", web: web)

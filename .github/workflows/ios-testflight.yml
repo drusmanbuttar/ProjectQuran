@@ -56,10 +56,12 @@ jobs:
           python3 scripts/ios-export-options.py
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/pocket-quran.mobileprovision"
+          gem install --user-install xcodeproj -v 1.27.0 --no-document
       - name: Archive and export signed app
         run: |
           set -euo pipefail
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/PocketQuran.xcarchive" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT" archive
+          ruby scripts/ios-sign-project.rb
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/PocketQuran.xcarchive" archive
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/PocketQuran.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/PocketQuranExport"
       - uses: actions/upload-artifact@v4
         with:
