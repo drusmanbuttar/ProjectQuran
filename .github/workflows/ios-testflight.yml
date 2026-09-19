@@ -55,6 +55,7 @@ jobs:
             -archivePath "$RUNNER_TEMP/PockettQuran.xcarchive" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/AuthKey_${API_KEY_ID}.p8" \
