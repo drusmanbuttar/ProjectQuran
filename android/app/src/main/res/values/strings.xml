@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ProjectQuran</string>
-    <string name="title_activity_main">ProjectQuran</string>
+    <string name="app_name">Pocket Quran</string>
+    <string name="title_activity_main">Pocket Quran</string>
     <string name="package_name">com.drusmanbuttar.projectquran</string>
     <string name="custom_url_scheme">com.drusmanbuttar.projectquran</string>
 </resources>

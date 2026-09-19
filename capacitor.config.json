@@ -1,6 +1,6 @@
 {
   "appId": "com.drusmanbuttar.projectquran",
-  "appName": "ProjectQuran",
+  "appName": "Pocket Quran",
   "webDir": "dist",
   "android": { "backgroundColor": "#102e3c" }
 }

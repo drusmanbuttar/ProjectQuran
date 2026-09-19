@@ -42,9 +42,15 @@ public class OfflineBackupTest {
 
     @Test public void offlineReadingAndNativeBackupRoundTrip() throws Exception {
         until("document.querySelector('.event-card')!==null");
+        assertEquals("Pocket Quran",context.getString(com.drusmanbuttar.projectquran.R.string.app_name));
         assertEquals("\"android\"",js("Capacitor.getPlatform()"));
         assertEquals("true",js("document.getElementById('connection').textContent.includes('bundled')"));
+        js("document.getElementById('show-test-ad').click()");
+        until("document.getElementById('ad-test-status').textContent.includes('requested')");
         js("location.hash='reader'");until("document.querySelector('.verse')!==null");
+        assertEquals("true",js("document.getElementById('ad-test-controls')===null"));
+        js("Capacitor.Plugins.PocketAds.status().then(s=>window.adHidden=s.state==='idle'&&!s.visible)");
+        until("window.adHidden===true");
         assertEquals("7",js("document.querySelectorAll('.verse').length"));
         assertEquals("true",js("!!document.querySelector('.verse [lang=ar]')&&!!document.querySelector('.verse [lang=en]')&&!!document.querySelector('.verse [lang=ur]')"));
         js("location.hash='notebook'");until("document.getElementById('import-notes')!==null");

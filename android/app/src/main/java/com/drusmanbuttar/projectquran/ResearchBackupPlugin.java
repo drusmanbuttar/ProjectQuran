@@ -15,7 +15,7 @@ public class ResearchBackupPlugin extends Plugin {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("application/json");
-        intent.putExtra(Intent.EXTRA_TITLE, "ProjectQuran-research-" + System.currentTimeMillis() + ".json");
+        intent.putExtra(Intent.EXTRA_TITLE, "Pocket-Quran-research-" + System.currentTimeMillis() + ".json");
         startActivityForResult(call, intent, "exportSelected");
     }
     @ActivityCallback private void exportSelected(PluginCall call, ActivityResult result) {
