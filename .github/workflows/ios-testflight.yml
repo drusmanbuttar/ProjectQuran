@@ -1,0 +1,93 @@
+name: Pocket Quran signed iPhone build
+on:
+  workflow_dispatch:
+    inputs:
+      upload_to_testflight:
+        description: Upload the signed build to App Store Connect
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: macos-26
+    environment: apple-release
+    timeout-minutes: 40
+    env:
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.19.0'
+      - run: pnpm install --frozen-lockfile
+      - name: Check and prepare app
+        run: |
+          pnpm run check
+          node scripts/check-catalog.mjs
+          node scripts/check-behavior.mjs
+          pnpm exec cap sync ios
+          sips -z 1024 1024 dist/icon-512.png --out ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+      - name: Install signing identity
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          : "${APPLE_TEAM_ID:?Set APPLE_TEAM_ID in the apple-release environment}"
+          : "${BUILD_CERTIFICATE_BASE64:?Missing certificate secret}"
+          : "${BUILD_PROVISION_PROFILE_BASE64:?Missing profile secret}"
+          : "${P12_PASSWORD:?Missing certificate password}"
+          : "${KEYCHAIN_PASSWORD:?Missing temporary keychain password}"
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          printf '%s' "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/pocket-signing.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/pocket-signing.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/pocket-signing.keychain-db"
+          security import "$RUNNER_TEMP/signing.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$RUNNER_TEMP/pocket-signing.keychain-db"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/pocket-signing.keychain-db"
+          security list-keychains -d user -s "$RUNNER_TEMP/pocket-signing.keychain-db" login.keychain-db
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          python3 scripts/ios-export-options.py
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/pocket-quran.mobileprovision"
+          gem install --user-install xcodeproj -v 1.27.0 --no-document
+      - name: Archive and export signed app
+        run: |
+          set -euo pipefail
+          ruby scripts/ios-sign-project.rb
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/PocketQuran.xcarchive" archive
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/PocketQuran.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/PocketQuranExport"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pocket-Quran-Signed-iOS
+          path: ${{ runner.temp }}/PocketQuranExport/*.ipa
+          retention-days: 7
+      - name: Upload to TestFlight
+        if: ${{ inputs.upload_to_testflight }}
+        env:
+          APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          : "${APP_STORE_CONNECT_KEY_BASE64:?Missing App Store Connect API key}"
+          : "${APP_STORE_CONNECT_KEY_ID:?Missing API key ID}"
+          : "${APP_STORE_CONNECT_ISSUER_ID:?Missing API issuer ID}"
+          [[ "$APP_STORE_CONNECT_KEY_ID" =~ ^[A-Za-z0-9]+$ ]] || exit 1
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "$APP_STORE_CONNECT_KEY_BASE64" | base64 --decode > "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          chmod 600 "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          xcrun altool --upload-app --type ios --file "$RUNNER_TEMP/PocketQuranExport/"*.ipa --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+      - name: Remove temporary signing files
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/pocket-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/signing.p12" "$RUNNER_TEMP/profile.mobileprovision" "$RUNNER_TEMP/profile.plist"
+          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/pocket-quran.mobileprovision"
+          rm -f "$HOME/.appstoreconnect/private_keys/"AuthKey_*.p8

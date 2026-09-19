@@ -7,11 +7,13 @@
   "scripts": {
     "check": "node --check dist/app.js && node --check dist/catalog.js && node --check dist/sw.js && python3 scripts/validate.py",
     "android:sync": "cap sync android",
-    "test:behavior": "node scripts/check-behavior.mjs"
+    "test:behavior": "node scripts/check-behavior.mjs",
+    "ios:sync": "cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
-    "@capacitor/core": "^8.5.2"
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "8.5.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2"
