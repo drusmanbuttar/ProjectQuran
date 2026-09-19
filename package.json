@@ -6,11 +6,15 @@
   "description": "Source-linked Quran research web app and installable PWA",
   "scripts": {
     "check": "node --check dist/app.js && node --check dist/catalog.js && node --check dist/sw.js && python3 scripts/validate.py",
+    "android:add": "npx cap add android",
+    "android:sync": "npm run check && npx cap sync android",
+    "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease",
     "ios:add": "npx cap add ios",
     "ios:sync": "npm run check && npx cap sync ios",
     "ios:open": "npx cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/ios": "^8.5.2"
   },

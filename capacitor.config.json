@@ -6,5 +6,9 @@
     "contentInset": "automatic",
     "preferredContentMode": "mobile",
     "backgroundColor": "#081a14"
+  },
+  "android": {
+    "backgroundColor": "#081a14",
+    "allowMixedContent": false
   }
 }
