@@ -16,8 +16,9 @@ unless test
   test.build_configurations.each do |config|
     config.build_settings['SWIFT_VERSION'] = '5.0'
     config.build_settings['GENERATE_INFOPLIST_FILE'] = 'YES'
+    config.build_settings['PRODUCT_NAME'] = '$(TARGET_NAME)'
     config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.drusmanbuttar.projectquran.tests'
-    config.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/App'
+    config.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/App.app/App'
     config.build_settings['BUNDLE_LOADER'] = '$(TEST_HOST)'
     config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
   end
@@ -28,3 +29,4 @@ scheme.add_build_target(app)
 scheme.add_test_target(test)
 scheme.set_launch_target(app)
 scheme.save_as('ios/App/App.xcodeproj', 'App', true)
+
