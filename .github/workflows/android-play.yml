@@ -2,6 +2,16 @@ name: Android Play bundle
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dist/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/android-play.yml'
 
 permissions:
   contents: read
@@ -40,7 +50,12 @@ jobs:
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: cd android && ./gradlew bundleRelease
+        run: |
+          export ANDROID_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          export ANDROID_VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          echo "Building Android versionName=${ANDROID_VERSION_NAME} versionCode=${ANDROID_VERSION_CODE}"
+          cd android
+          ./gradlew bundleRelease
       - uses: actions/upload-artifact@v4
         with:
           name: pockett-quran-play-bundle
