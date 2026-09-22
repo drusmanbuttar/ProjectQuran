@@ -5,6 +5,11 @@ const memory=new Map();const context=vm.createContext({prophets,topics,tracks,co
 let source=fs.readFileSync(new URL('../dist/app.js',import.meta.url),'utf8').replace(/^import .*?;\r?\n/,'').replace(/boot\(\);\s*$/,'');vm.runInContext(source,context);await vm.runInContext('boot()',context);
 assert(node('#main').innerHTML.includes('Creation & beginnings'));
 assert.equal(vm.runInContext('flat.length',context),6236);
+assert.equal(vm.runInContext("verseData('2:38').ar",context),data.ar['2'][37].text);
+assert.equal(vm.runInContext("verseData('2:38').en",context),data.en['2'][37].text);
+assert.equal(vm.runInContext("verseData('2:38').ur",context),data.ur['2'][37].text);
+assert(!vm.runInContext("verseData('2:1').ar",context).includes('بِسْمِ'));
+assert.equal(vm.runInContext("verseData('1:1').ar",context),data.ar['1'][0].text);
 assert.equal(vm.runInContext("refsExpand(['2:30-39','2:30']).length",context),10);
 assert.throws(()=>vm.runInContext("refsExpand(['2:287'])",context));
 for(const route of ['timeline','prophets','topics','reader','revelation','saved','sources']){context.location.hash='#'+route;vm.runInContext('render()',context);assert(node('#main').innerHTML.length>300,route)}
