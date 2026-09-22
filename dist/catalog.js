@@ -62,8 +62,7 @@ export const tracks={
 origins:{name:'Creation & beginnings',description:'Quranic passages about creation. The reading order below does not assert a dated sequence or an exhaustive cosmology.',events:[
 {id:'universe',title:'The heavens & the earth',ar:'السماوات والأرض',era:'Creation · no calendar date assigned',description:'Explore passages describing creation and the signs within it.',refs:['7:54','21:30-33','41:9-12'],hadith:[{label:'Sahih al-Bukhari 3191',url:'https://sunnah.com/bukhari:3191',note:'A report concerning the beginning of creation. Read the full report separately from the Quranic passages.'}]},
 {id:'life',title:'Life & the living world',ar:'الحياة',era:'Creation themes · relationship not dated',description:'Water, living creatures, and the creation of humankind.',refs:['21:30','24:45','23:12-14']},
-{id:'adam',title:'Adam',ar:'آدم',era:'Human beginnings · date unknown',description:'The angels, the garden, the trial, and guidance on earth.',refs:prophets[0].refs},
-{id:'guidance',title:'Guidance for humanity',ar:'الهدى',era:'A recurring theme through human history',description:'Messengers, communities, and the promise of guidance.',refs:['2:38-39','16:36','40:78']}
+{id:'adam',title:'Adam',ar:'آدم',era:'Human beginnings · date unknown',description:'The angels, the garden, the trial, and guidance on earth.',refs:prophets[0].refs}
 ]},
 prophetic:{name:'Prophetic narratives',description:'A broad study sequence, not a complete dated chronology. Contemporary prophets are grouped; relative placement of several other prophets is uncertain. Open the Prophets directory for all 25 names.',events:[
 ['adam','Adam','آدم','Human beginnings · date unknown','The beginning of the human story.'],
