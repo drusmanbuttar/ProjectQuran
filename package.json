@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Source-linked Quran research web app and installable PWA",
   "scripts": {
-    "check": "node --check dist/app.js && node --check dist/catalog.js && node --check dist/sw.js && python3 scripts/validate.py",
+    "check": "node --check dist/app.js && node --check dist/catalog.js && node --check dist/sw.js && python3 scripts/validate.py && node scripts/check-behavior.mjs",
     "android:add": "npx cap add android",
     "android:sync": "npm run check && npx cap sync android",
     "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease",
