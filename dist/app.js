@@ -41,6 +41,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 if(b.hasAttribute('data-mobile-more')){if(!mobileMenu.open)mobileMenu.showModal();return}
 if(b.hasAttribute('data-mobile-menu-close')){if(mobileMenu.open)mobileMenu.close();return}
 if(b.dataset.homeReader){const target=b.dataset.homeReader;navigate('reader');setTimeout(()=>{const el=$('#'+target);if(el)el.focus()},0);return}
+if(b.dataset.lastRead){markLastRead(b.dataset.lastRead);return}
+if(b.dataset.surahStep){if(readerSurah)setSurah(Math.max(1,Math.min(114,readerSurah+Number(b.dataset.surahStep))));return}
 if(b.dataset.arabicSize){arabicSize=Math.max(28,Math.min(44,arabicSize+Number(b.dataset.arabicSize)));storage.set('arabic-size',arabicSize);document.documentElement.style.setProperty('--arabic-reader-size',arabicSize+'px');document.querySelectorAll('.font-size-value').forEach(el=>el.textContent=arabicSize+'px');}
 if(b.dataset.track){track=b.dataset.track;renderTimeline()}
 if(b.dataset.event)openDetail(tracks[track].events.find(x=>x.id===b.dataset.event));
@@ -55,7 +57,8 @@ if(b.hasAttribute('data-revelation-track')){track='revelation';navigate('timelin
 document.addEventListener('click',e=>{const a=e.target.closest('#mobile-menu a');if(a&&mobileMenu.open)mobileMenu.close()});
 document.addEventListener('change',e=>{if(e.target.classList.contains('language-select')){language=e.target.value;storage.set('language',language);if(dialog.open)drawDetail();else render()}
 if(e.target.id==='surah'&&e.target.value)setSurah(+e.target.value);
-if(e.target.id==='juz'&&e.target.value){const j=+e.target.value,from=meta.indexes.juzs[j-1],to=meta.indexes.juzs[j];const key=(s,v)=>s*1000+v;readerRefs=flat.filter(x=>key(x.s,x.v)>=key(from.sura,from.aya)&&(!to||key(x.s,x.v)<key(to.sura,to.aya))).map(x=>x.ref);readerTitle='Juz '+j;page=0;renderReader();$('#juz').value=j}
+if(e.target.id==='juz'&&e.target.value){const j=+e.target.value,from=meta.indexes.juzs[j-1],to=meta.indexes.juzs[j];const key=(s,v)=>s*1000+v;readerSurah=0;readerJuz=j;readerRefs=flat.filter(x=>key(x.s,x.v)>=key(from.sura,from.aya)&&(!to||key(x.s,x.v)<key(to.sura,to.aya))).map(x=>x.ref);readerTitle='Juz '+j;page=0;renderReader()}
+if(e.target.id==='ayah'&&readerSurah&&e.target.value){const v=+e.target.value;if(v>=1&&v<=db.ar[readerSurah].length)openReaderAt(readerSurah+':'+v);else toast('Choose an ayah between 1 and '+db.ar[readerSurah].length+'.')}
 if(e.target.id==='period')revelationList(e.target.value)});
 document.addEventListener('submit',e=>{if(e.target.id==='search-form'){e.preventDefault();search($('#search').value)}});
 $('#close-detail').onclick=()=>dialog.close();window.addEventListener('hashchange',()=>{if(mobileMenu.open)mobileMenu.close();page=0;render();window.scrollTo(0,0)});
