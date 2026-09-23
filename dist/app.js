@@ -35,6 +35,7 @@ function renderSources(){main.innerHTML=intro('TRANSPARENCY & CARE','Sources & m
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
 if(b.hasAttribute('data-mobile-more')){if(!mobileMenu.open)mobileMenu.showModal();return}
 if(b.hasAttribute('data-mobile-menu-close')){if(mobileMenu.open)mobileMenu.close();return}
+if(b.dataset.homeReader){const target=b.dataset.homeReader;navigate('reader');setTimeout(()=>{const el=$('#'+target);if(el)el.focus()},0);return}
 if(b.dataset.arabicSize){arabicSize=Math.max(28,Math.min(44,arabicSize+Number(b.dataset.arabicSize)));storage.set('arabic-size',arabicSize);document.documentElement.style.setProperty('--arabic-reader-size',arabicSize+'px');document.querySelectorAll('.font-size-value').forEach(el=>el.textContent=arabicSize+'px');}
 if(b.dataset.track){track=b.dataset.track;renderTimeline()}
 if(b.dataset.event)openDetail(tracks[track].events.find(x=>x.id===b.dataset.event));
