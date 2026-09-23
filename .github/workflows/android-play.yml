@@ -51,7 +51,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          export ANDROID_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          export ANDROID_VERSION_CODE=$((200000 + GITHUB_RUN_NUMBER))
           export ANDROID_VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
           echo "Building Android versionName=${ANDROID_VERSION_NAME} versionCode=${ANDROID_VERSION_CODE}"
           cd android
