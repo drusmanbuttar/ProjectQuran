@@ -32,4 +32,7 @@ assets=re.search(r'const FILES=\[(.*?)\];',sw).group(1)
 for asset in re.findall(r"'([^']+)'",assets):
  assert asset=='./' or (d/asset).exists(),asset
 assert 'Tanzil' in ar['_license']
+font=d/'fonts'/'AmiriQuran.ttf'; assert font.exists() and font.stat().st_size>100000
+assert (d/'AMIRI-OFL.txt').exists()
+css=(d/'style.css').read_text(); assert "font-family:'Amiri Quran'" in css and "fonts/AmiriQuran.ttf" in css
 print('PASS: 114 surahs, 6,236 aligned Arabic/English/Urdu verses, 30 complete non-overlapping juz, local assets, PWA icons and cache manifest.')
