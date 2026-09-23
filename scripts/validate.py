@@ -35,4 +35,10 @@ assert 'Tanzil' in ar['_license']
 font=d/'fonts'/'AmiriQuran.ttf'; assert font.exists() and font.stat().st_size>100000
 assert (d/'AMIRI-OFL.txt').exists()
 css=(d/'style.css').read_text(); assert "font-family:'Amiri Quran'" in css and "fonts/AmiriQuran.ttf" in css
+assert 'class="mobile-nav"' in html and 'id="mobile-menu"' in html, 'mobile navigation missing'
+assert 'data-mobile-more' in html and 'data-mobile-menu-close' in html, 'mobile overflow controls missing'
+assert '.mobile-nav{position:fixed' in css and 'safe-area-inset-bottom' in css, 'mobile navigation CSS missing'
+appjs=(d/'app.js').read_text()
+assert "mobileMenu=$('#mobile-menu')" in appjs and "data-mobile-more" in appjs, 'mobile navigation behavior missing'
+assert 'function fontSizeControl()' in appjs and 'readerControls()' in appjs and '${fontSizeControl()}' in appjs, 'Arabic size controls missing from reader'
 print('PASS: 114 surahs, 6,236 aligned Arabic/English/Urdu verses, 30 complete non-overlapping juz, local assets, PWA icons and cache manifest.')
