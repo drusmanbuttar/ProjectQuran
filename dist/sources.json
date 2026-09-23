@@ -48,5 +48,12 @@
       "revision": "e20bba6abe2cc37f77f5aae5266f39cc55b9ca77"
     }
   ],
-  "editorial": "Topic and event links are a non-exhaustive research draft. Arabic strings and translation content are unchanged; JSON packaging is minified."
+  "editorial": "Topic and event links are a non-exhaustive research draft. Arabic strings and translation content are unchanged; JSON packaging is minified.",
+  "english_translation_review": {
+    "reviewed": "2026-09-23",
+    "translation": "Marmaduke Pickthall, The Meaning of the Glorious Koran (1930)",
+    "status": "Retained as a respected historical and relatively literal English interpretation; not described as uniquely or universally the most authoritative English translation.",
+    "provenance": "Bundled data is documented as sourced from the eng-mohammedmarmadu edition of fawazahmed0/quran-api.",
+    "caveat": "English translations are interpretations of meaning. The Arabic Quran remains the primary text."
+  }
 }
