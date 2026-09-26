@@ -48,14 +48,14 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          export ANDROID_VERSION_CODE=200012
-          export ANDROID_VERSION_NAME="1.0.12"
+          export ANDROID_VERSION_CODE=200013
+          export ANDROID_VERSION_NAME="1.0.13"
           echo "Building Android versionName=${ANDROID_VERSION_NAME} versionCode=${ANDROID_VERSION_CODE}"
           cd android
           ./gradlew bundleRelease
       - uses: actions/upload-artifact@v4
         with:
-          name: pockett-quran-android-1.0.12-200012
+          name: pockett-quran-android-1.0.13-200013
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
