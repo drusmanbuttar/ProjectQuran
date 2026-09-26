@@ -50,5 +50,6 @@ assert "renderHome(){main.innerHTML" in appjs and "searchForm()+lastReadCard()" 
 assert "hasAttribute('data-header-search')" in appjs, 'compact header search behavior missing'
 assert 'function lastReadCard()' in appjs and 'data-continue-reading' in appjs and 'data-last-read' in appjs, 'Continue Reading controls missing'
 assert 'id="ayah"' in appjs and 'data-surah-step' in appjs, 'reader jump/navigation controls missing'
+assert 'visibleRefs=continuous?readerRefs:readerRefs.slice(page*12,page*12+12)' in appjs and "readerPager=continuous?'':pager" in appjs, 'continuous Surah reading logic missing'
 assert 'Pickthall (1930)' in appjs and 'no English translation is treated' in appjs, 'English translation provenance note missing'
 print('PASS: 114 surahs, 6,236 aligned Arabic/English/Urdu verses, 30 complete non-overlapping juz, local assets, PWA icons and cache manifest.')
