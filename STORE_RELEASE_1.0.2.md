@@ -6,7 +6,7 @@
 - Bundle ID: com.drusmanbuttar.projectquran
 
 ### What's New
-Refined light interface, continuous Quran reading across all sections, same-screen research reading, improved mobile navigation, compact search, and usability improvements.
+Refined light interface, continuous Quran reading across all sections, same-screen research reading, improved mobile navigation, edge-swipe back navigation, responsive screen fitting, and usability improvements.
 
 ## Android
 - Version name: 1.0.10
@@ -14,7 +14,7 @@ Refined light interface, continuous Quran reading across all sections, same-scre
 - Package: com.drusmanbuttar.projectquran
 
 ### Release notes
-Refined light interface, continuous Quran reading across all sections, same-screen research reading, improved navigation, compact search, and usability improvements.
+Refined light interface, continuous Quran reading across all sections, same-screen research reading, improved navigation, edge-swipe back navigation, responsive screen fitting, and usability improvements.
 
 ## Apple metadata for 1.0.2
 Suggested subtitle: Surahs, Prophets & Topics
