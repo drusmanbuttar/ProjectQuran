@@ -2,16 +2,6 @@ name: Android Play bundle
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'dist/**'
-      - 'android/**'
-      - 'capacitor.config.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/android-play.yml'
 
 permissions:
   contents: read
