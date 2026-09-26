@@ -5,7 +5,7 @@
 - App name: Pockett Quran
 - Subtitle: A Connected Study of the Quran
 - Bundle ID: `com.drusmanbuttar.projectquran`
-- Version: 1.0
+- Version: 1.0.2
 - Primary language: English (UK)
 - Primary category: Reference
 - Secondary category: Education
@@ -38,7 +38,7 @@ Key features:
 
 **Keywords**
 
-Quran,Islam,Islamic,study,Arabic,Urdu,English,prophets,timeline,research
+islam,muslim,ayah,verse,translation,juz,arabic,history,timeline,stories,reading,bookmark
 
 ## URLs
 
