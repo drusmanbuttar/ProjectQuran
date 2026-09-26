@@ -2,6 +2,11 @@ name: Android Play bundle
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.release/**'
 
 permissions:
   contents: read
@@ -9,6 +14,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,14 +48,24 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          export ANDROID_VERSION_CODE=$((200000 + GITHUB_RUN_NUMBER))
-          export ANDROID_VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          export ANDROID_VERSION_CODE=200010
+          export ANDROID_VERSION_NAME="1.0.10"
           echo "Building Android versionName=${ANDROID_VERSION_NAME} versionCode=${ANDROID_VERSION_CODE}"
           cd android
           ./gradlew bundleRelease
       - uses: actions/upload-artifact@v4
         with:
-          name: pockett-quran-play-bundle
+          name: pockett-quran-android-1.0.10-200010
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload to Google Play Production when service account is configured
+        if: env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.drusmanbuttar.projectquran
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: production
+          status: completed
