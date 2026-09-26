@@ -1,0 +1,6 @@
+Pockett Quran Android beta trigger
+Version: 1.0.13
+Version code: 200013
+Changes: remove Tafseer/translator-note display; retain prior mobile fit, swipe-back, zoom prevention and search removal fixes.
+Track: Internal testing only when Play credentials are configured.
+Production release: NO.
