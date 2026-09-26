@@ -16,6 +16,7 @@ vm.runInContext("search('mercy')",context);assert(vm.runInContext('searchResults
 vm.runInContext("search('الرحمن')",context);assert(vm.runInContext('searchResults.length>0',context));
 vm.runInContext("track='origins';renderTimeline()",context);assert(!node('#main').innerHTML.includes('Research notebook'));
 vm.runInContext("location.hash='#notebook';render()",context);assert(node('#main').innerHTML.includes('Read the Quran.'));
+assert(!node('#main').innerHTML.includes('id="search-form"'),'homepage should not render the large search form');
 console.log('PASS: actual app functions render all public views; open prophet verses; switch Urdu; search references, Arabic and English; remove notebook routing. DOM stubs used, not a browser layout test.');
 
 vm.runInContext("language='both';openDetail(topics.find(t=>t.id==='charity'))",context);
