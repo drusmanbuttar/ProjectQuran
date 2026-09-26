@@ -35,6 +35,10 @@ assert 'Tanzil' in ar['_license']
 font=d/'fonts'/'AmiriQuran.ttf'; assert font.exists() and font.stat().st_size>100000
 assert (d/'AMIRI-OFL.txt').exists()
 css=(d/'style.css').read_text(); assert "font-family:'Amiri Quran'" in css and "fonts/AmiriQuran.ttf" in css
+assert '1.0.2 light Quran-first visual system' in css, 'light UI theme missing'
+assert '--accent:#18856f' in css and '--paper:#fafbf7' in css and 'backdrop-filter:blur(18px)' in css, 'light UI palette or glass navigation missing'
+assert '#FAFBF7' in html, 'light browser theme color missing'
+assert manifest['background_color']=='#FAFBF7' and manifest['theme_color']=='#FAFBF7', 'PWA light theme colors missing'
 assert 'class="mobile-nav"' in html and 'id="mobile-menu"' in html, 'mobile navigation missing'
 assert 'data-mobile-more' in html and 'data-mobile-menu-close' in html, 'mobile overflow controls missing'
 assert 'class="sidebar-head"' in html and 'mobile-header-search' in html and 'desktop-header-search' in html, 'compact application header missing'
