@@ -31,3 +31,17 @@
   .sidebar-head .brand-copy{display:none}
   .mobile-header-search{width:min(176px,48vw)}
 }
+
+/* 1.0.2 inline research reading */
+.inline-reader-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 18px;max-width:900px;margin-left:auto;margin-right:auto}
+.inline-back{min-height:42px;padding:8px 13px;background:#fff;color:var(--accent);border-color:#b9d2d5;font-weight:650}
+.inline-back:hover{background:#eef7f7}
+.inline-reader-intro{max-width:900px;margin-left:auto;margin-right:auto;display:block}
+.inline-reader-intro h1{margin-bottom:10px}
+.inline-reader-intro p{max-width:760px;color:var(--muted)}
+.inline-reader-controls{max-width:900px;margin-left:auto;margin-right:auto}
+@media(max-width:720px){
+  .inline-reader-head{align-items:flex-start;margin-bottom:14px}
+  .inline-reader-head .eyebrow{padding-top:11px;text-align:right}
+  .inline-back{min-height:40px;padding:7px 11px;font-size:13px}
+}
