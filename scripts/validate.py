@@ -39,6 +39,7 @@ assert 'class="mobile-nav"' in html and 'id="mobile-menu"' in html, 'mobile navi
 assert 'data-mobile-more' in html and 'data-mobile-menu-close' in html, 'mobile overflow controls missing'
 assert 'class="sidebar-head"' in html and 'mobile-header-search' in html and 'desktop-header-search' in html, 'compact application header missing'
 assert 'data-header-search' in html, 'header search form missing'
+assert 'id="detail"' not in html and 'id="detail-body"' not in html, 'modal detail reader must be removed'
 assert '.mobile-nav{position:fixed' in css and 'safe-area-inset-bottom' in css, 'mobile navigation CSS missing'
 appjs=(d/'app.js').read_text()
 assert "mobileMenu=$('#mobile-menu')" in appjs and "data-mobile-more" in appjs, 'mobile navigation behavior missing'
@@ -51,6 +52,8 @@ assert "hasAttribute('data-header-search')" in appjs, 'compact header search beh
 assert 'function lastReadCard()' in appjs and 'data-continue-reading' in appjs and 'data-last-read' in appjs, 'Continue Reading controls missing'
 assert 'id="ayah"' in appjs and 'data-surah-step' in appjs, 'reader jump/navigation controls missing'
 assert 'function pager(' not in appjs and 'data-page=' not in appjs, 'pagination UI must be removed from all ayah reading views'
+assert 'function renderDetail()' in appjs and 'data-detail-back' in appjs and "main.innerHTML=`<div class=\"inline-reader-head\"" in appjs, 'inline research reader missing'
+assert "dialog=$('#detail')" not in appjs and 'drawDetail()' not in appjs, 'legacy modal detail logic remains'
 assert 'readerRefs.map(verse)' in appjs and 'detailRefs.map(verse)' in appjs and 'valid.map(verse)' in appjs and 'searchResults.map(verse)' in appjs, 'continuous reading missing from one or more ayah views'
 assert 'Pickthall (1930)' in appjs and 'no English translation is treated' in appjs, 'English translation provenance note missing'
 print('PASS: 114 surahs, 6,236 aligned Arabic/English/Urdu verses, 30 complete non-overlapping juz, local assets, PWA icons and cache manifest.')
