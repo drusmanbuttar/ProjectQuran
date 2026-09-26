@@ -62,7 +62,7 @@ Pockett Quran is a reading and educational application. It does not require logi
 1. Open `ios/App/App.xcodeproj` on a Mac with the current Xcode release.
 2. Select the App target, choose the paid Apple Developer team, and confirm automatic signing.
 3. Confirm the bundle identifier is available in the developer account.
-4. Run the app on an iPhone and verify Arabic/Urdu rendering, search, navigation and offline reopening.
+4. Run the app on an iPhone and verify Arabic/Urdu rendering, navigation, responsive screen fit and offline reopening.
 5. Archive the Release build and upload it to App Store Connect.
 6. Add iPhone screenshots, complete the content-rights declaration and select the build.
 7. Test through TestFlight before submitting version 1.0 for review.
