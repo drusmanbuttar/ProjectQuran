@@ -5,7 +5,7 @@
 - App name: **Pockett Quran**
 - Package name: `com.drusmanbuttar.projectquran`
 - Version name: `1.0`
-- Version code: `1`
+- Version code: `200010`
 - Android App Bundle: `android/app/build/outputs/bundle/release/app-release.aab`
 - Target SDK: Android 16 / API 36
 - Minimum SDK: Android 7 / API 24

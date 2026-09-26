@@ -1,0 +1,7 @@
+Pockett Quran store release trigger
+Date: 2026-09-26
+iOS: 1.0.2 (build 15)
+Android: 1.0.10 (versionCode 200010)
+Source commit base: 144c65775edbfb66b22c4408657f97cf51225b05
+
+This marker intentionally triggers the signed iOS and Android release workflows when merged to main.
