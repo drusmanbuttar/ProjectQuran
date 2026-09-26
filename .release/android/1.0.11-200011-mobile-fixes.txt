@@ -1,0 +1,6 @@
+Pockett Quran Android beta trigger
+Version: 1.0.11
+Version code: 200011
+Purpose: mobile fit, swipe-back, zoom prevention, and search removal validation.
+Track: Internal testing only when Play credentials are configured.
+Production release: NO.
