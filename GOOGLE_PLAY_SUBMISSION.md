@@ -62,7 +62,7 @@ Then run **Actions → Android Play bundle → Run workflow**. Download the `poc
 7. Set the target audience appropriate for a general reference app; do not select children unless you specifically intend to join the Families program and meet its additional rules.
 8. Add the store listing, phone/tablet screenshots, 512 × 512 icon, and 1024 × 500 feature graphic.
 9. Upload the signed `.aab` first to **Internal testing**, add testers, and install from the Play opt-in link.
-10. Verify launch, Arabic/Urdu rendering, search, saved verses, navigation, privacy/support links, and behavior with airplane mode.
+10. Verify launch, Arabic/Urdu rendering, saved verses, swipe-back navigation, responsive screen fit, privacy/support links, and behavior with airplane mode.
 11. Promote the tested release to Production and submit it for review.
 
 Suggested category: **Books & Reference**.
