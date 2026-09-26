@@ -1,0 +1,5 @@
+Pockett Quran iOS beta trigger
+Version: 1.0.2
+Build: 17
+Changes: mobile fit, swipe-back, zoom prevention, search removal, and Tafseer label.
+Production release: NO — TestFlight verification required first.
