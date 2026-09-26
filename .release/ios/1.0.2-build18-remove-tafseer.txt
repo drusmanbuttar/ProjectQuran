@@ -1,0 +1,5 @@
+Pockett Quran iOS beta trigger
+Version: 1.0.2
+Build: 18
+Changes: remove Tafseer/translator-note display; retain prior mobile fit, swipe-back, zoom prevention and search removal fixes.
+Production release: NO — TestFlight verification required first.
