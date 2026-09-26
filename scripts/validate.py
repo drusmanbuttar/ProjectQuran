@@ -43,6 +43,7 @@ assert 'class="mobile-nav"' in html and 'id="mobile-menu"' in html, 'mobile navi
 assert 'data-mobile-more' in html and 'data-mobile-menu-close' in html, 'mobile overflow controls missing'
 assert 'class="sidebar-head"' in html and 'mobile-header-search' in html and 'desktop-header-search' in html, 'compact application header missing'
 assert 'data-header-search' in html, 'header search form missing'
+assert '<footer>Pockett Quran App - Muhammad Usman Buttar</footer>' in html, 'footer text is not the requested exact wording'
 assert 'id="detail"' not in html and 'id="detail-body"' not in html, 'modal detail reader must be removed'
 assert '.mobile-nav{position:fixed' in css and 'safe-area-inset-bottom' in css, 'mobile navigation CSS missing'
 appjs=(d/'app.js').read_text()
@@ -53,6 +54,9 @@ assert 'function renderHome()' in appjs and "||'home'" in appjs, 'homepage rende
 assert 'class="home-actions"' in appjs and 'class="home-research-grid"' in appjs, 'homepage quick actions missing'
 assert "renderHome(){main.innerHTML" in appjs and "searchForm()+lastReadCard()" not in appjs, 'oversized homepage search field still present'
 assert "hasAttribute('data-header-search')" in appjs, 'compact header search behavior missing'
+assert "renderTimeline(){const t=tracks[track];main.innerHTML=intro" in appjs and "renderTimeline(){const t=tracks[track];main.innerHTML=intro('EXPLORE THE CONNECTIONS','A journey through the Quran.','Follow the narratives. Discover shared themes. Return to the source.')+searchForm()" not in appjs, 'Timeline long search bar still present'
+assert "+searchForm()+readerControls()" not in appjs, 'Quran reader long search bar still present'
+assert 'Read in context ↗' not in appjs and 'https://quran.com/${x.s}/${x.v}' not in appjs, 'external verse context link still present'
 assert 'function lastReadCard()' in appjs and 'data-continue-reading' in appjs and 'data-last-read' in appjs, 'Continue Reading controls missing'
 assert 'id="ayah"' in appjs and 'data-surah-step' in appjs, 'reader jump/navigation controls missing'
 assert 'function pager(' not in appjs and 'data-page=' not in appjs, 'pagination UI must be removed from all ayah reading views'
