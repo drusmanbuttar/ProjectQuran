@@ -9,12 +9,12 @@ assert(vm.runInContext("lastReadCard().includes('Start with Al-Faatiha')",contex
 assert.equal(vm.runInContext("refsExpand(['2:30-39','2:30']).length",context),10);
 assert.throws(()=>vm.runInContext("refsExpand(['2:287'])",context));
 for(const route of ['home','timeline','prophets','topics','reader','revelation','saved','sources']){context.location.hash='#'+route;vm.runInContext('render()',context);assert(node('#main').innerHTML.length>300,route)}
-vm.runInContext("openDetail(prophets.find(p=>p.id==='musa'))",context);assert(node('#detail-body').innerHTML.includes('Musa'));assert(node('#detail-body').innerHTML.includes('20:9'));
+vm.runInContext("openDetail(prophets.find(p=>p.id==='musa'))",context);assert(node('#detail-body').innerHTML.includes('Musa'));assert(node('#detail-body').innerHTML.includes('20:9'));assert.equal((node('#detail-body').innerHTML.match(/class="verse"/g)||[]).length,vm.runInContext('detailRefs.length',context));assert(!node('#detail-body').innerHTML.includes('data-page='),'Prophet detail must be continuous');
 vm.runInContext("language='ur';drawDetail()",context);assert(node('#detail-body').innerHTML.includes('lang="ur"'));assert(node('#detail-body').innerHTML.includes('Translator’s notes'));
 vm.runInContext("search('2:255')",context);assert.equal(vm.runInContext('searchResults[0]',context),'2:255');
-vm.runInContext("search('mercy')",context);assert(vm.runInContext('searchResults.length>0',context));
+vm.runInContext("search('mercy')",context);assert(vm.runInContext('searchResults.length>0',context));vm.runInContext('renderSearch()',context);assert.equal((node('#main').innerHTML.match(/class="verse"/g)||[]).length,vm.runInContext('searchResults.length',context));assert(!node('#main').innerHTML.includes('data-page='),'Search results must be continuous');
 vm.runInContext("search('الرحمن')",context);assert(vm.runInContext('searchResults.length>0',context));
-vm.runInContext("track='origins';renderTimeline()",context);assert(!node('#main').innerHTML.includes('Research notebook'));
+vm.runInContext("track='origins';renderTimeline()",context);assert(!node('#main').innerHTML.includes('Research notebook'));vm.runInContext("openDetail(tracks.origins.events[0])",context);assert.equal((node('#detail-body').innerHTML.match(/class="verse"/g)||[]).length,vm.runInContext('detailRefs.length',context));assert(!node('#detail-body').innerHTML.includes('data-page='),'Timeline detail must be continuous');
 vm.runInContext("location.hash='#notebook';render()",context);assert(node('#main').innerHTML.includes('Read the Quran.'));
 assert(!node('#main').innerHTML.includes('id="search-form"'),'homepage should not render the large search form');
 console.log('PASS: actual app functions render all public views; open prophet verses; switch Urdu; search references, Arabic and English; remove notebook routing. DOM stubs used, not a browser layout test.');
@@ -23,10 +23,12 @@ vm.runInContext("language='both';openDetail(topics.find(t=>t.id==='charity'))",c
 assert(node('#detail-body').innerHTML.includes('lang="en"'));
 assert(node('#detail-body').innerHTML.includes('lang="ur"'));
 assert(node('#detail-body').innerHTML.includes('lang="ar"'));
-assert(!node('#detail-body').innerHTML.includes('data-category-notes'));
+assert(!node('#detail-body').innerHTML.includes('data-category-notes'));assert.equal((node('#detail-body').innerHTML.match(/class="verse"/g)||[]).length,vm.runInContext('detailRefs.length',context));assert(!node('#detail-body').innerHTML.includes('data-page='),'Topic detail must be continuous');
 vm.runInContext("renderTopics()",context);
 assert(node('#main').innerHTML.includes('30 research categories'));
 assert.equal((node('#main').innerHTML.match(/class="topic-card"/g)||[]).length,30);
+vm.runInContext("saved=['2:1','2:2','2:3','2:4','2:5','2:6','2:7','2:8','2:9','2:10','2:11','2:12','2:13'];renderSaved()",context);assert.equal((node('#main').innerHTML.match(/class="verse"/g)||[]).length,13);assert(!node('#main').innerHTML.includes('data-page='),'Saved verses must be continuous');
+vm.runInContext("readerSurah=0;readerJuz=1;readerRefs=flat.slice(0,20).map(x=>x.ref);readerTitle='Juz test';renderReader()",context);assert.equal((node('#main').innerHTML.match(/class="verse"/g)||[]).length,20);assert(!node('#main').innerHTML.includes('data-page='),'Juz reader must be continuous');
 vm.runInContext("renderSources()",context);
 assert.equal((node('#main').innerHTML.match(/<p>/g)||[]).length,3);
 assert(!node('#main').innerHTML.includes('Install app'));
