@@ -5,10 +5,10 @@
   "ios": {
     "contentInset": "automatic",
     "preferredContentMode": "mobile",
-    "backgroundColor": "#081a14"
+    "backgroundColor": "#FAFBF7"
   },
   "android": {
-    "backgroundColor": "#081a14",
+    "backgroundColor": "#FAFBF7",
     "allowMixedContent": false
   }
 }
