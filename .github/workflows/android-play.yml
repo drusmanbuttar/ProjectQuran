@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - '.release/**'
+      - '.release/android/**'
 
 permissions:
   contents: read

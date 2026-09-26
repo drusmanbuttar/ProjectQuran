@@ -1,0 +1,4 @@
+Pockett Quran iOS cloud-signing retry
+Version: 1.0.2
+Build: 15
+Reason: avoid creation of another Apple Development certificate during archive.
