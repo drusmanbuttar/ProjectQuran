@@ -1,0 +1,5 @@
+Pockett Quran iOS beta trigger
+Version: 1.0.2
+Build: 16
+Purpose: mobile fit, swipe-back, zoom prevention, and search removal validation.
+Production release: NO — TestFlight verification required first.
