@@ -33,7 +33,10 @@ with TemporaryDirectory() as profile:
         driver.get(url + hash_value)
         wait.until(lambda d: d.find_elements(By.CSS_SELECTOR, selector))
     def fit():
-        assert driver.execute_script('return document.documentElement.scrollWidth <= innerWidth + 1')
+        info = driver.execute_script('''return {width:innerWidth, scroll:document.documentElement.scrollWidth,
+          overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1)
+          .slice(0,12).map(e=>[e.tagName,e.className.baseVal||String(e.className),Math.round(e.getBoundingClientRect().right)])}''')
+        assert info['scroll'] <= info['width'] + 1, info
     try:
         driver.get(url)
         wait.until(lambda _: el('h1').text == 'Reading room')
@@ -44,7 +47,7 @@ with TemporaryDirectory() as profile:
         for width,height in [(320,700),(390,844),(768,1024),(1280,800)]:
             driver.execute_cdp_cmd('Emulation.setDeviceMetricsOverride',dict(width=width,height=height,deviceScaleFactor=1,mobile=False))
             fit()
-            assert el('nav.mobile-nav').is_displayed() == (width<=760)
+            assert el('nav.mobile-nav').is_displayed() == (width<=820)
             el('button[data-theme]').click()
             assert el('main h1').text == 'Reading room'
         at('#index','#filter')
