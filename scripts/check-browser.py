@@ -60,6 +60,10 @@ with TemporaryDirectory() as profile:
         wait.until(lambda _: '2:38' in el('.match').text)
         el('.match').click()
         wait.until(lambda _: driver.find_elements(By.CSS_SELECTOR, '[data-ref="2:38"].arrived'))
+        verse = el('[data-ref="2:38"] .arabic')
+        assert verse.get_attribute('textContent').split()[6] == 'مِّنِّي'
+        assert driver.execute_async_script("const done=arguments[arguments.length-1]; document.fonts.load('34px \"QPC Hafs\"','مِّنِّي').then(fonts=>done(fonts.length===1 && fonts[0].status==='loaded')).catch(()=>done(false));")
+        assert 'QPC Hafs' in verse.value_of_css_property('font-family')
         assert len(driver.find_elements(By.CSS_SELECTOR,'.verse'))==286
         el('[data-save="2:38"]').click()
         assert el('[data-save="2:38"]').get_attribute('aria-pressed')=='true'

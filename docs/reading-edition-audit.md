@@ -2,7 +2,7 @@
 
 ## Decision
 
-Build the daily reading experience around the ayah, while keeping the project's distinctive strength within reach: following a prophet, event or theme back to its cited passages. Version 1.1.0 uses a paper-coloured reading surface, an original geometric illumination, a separate night palette and the existing locally bundled Amiri Quran font. The home screen offers a single reading action and direct access to the Surah and Juz index.
+Build the daily reading experience around the ayah, while keeping the project's distinctive strength within reach: following a prophet, event or theme back to its cited passages. Version 1.1.0 uses a paper-coloured reading surface, an original geometric illumination, a separate night palette and the paired QPC Hafs scripture font. The home screen offers a single reading action and direct access to the Surah and Juz index.
 
 ## Market comparison
 
@@ -34,7 +34,7 @@ Public listings: [Pockett Quran for Android](https://play.google.com/store/apps/
 
 ## Content and verification scope
 
-The locked source is Tanzil Uthmani. The integrity check verifies all 6,236 NFC-normalised SHA-256 values, the exact order of the 114 surahs and ayat, and an explicit regression for Al-Baqarah 2:38. Structural validation checks every English and Urdu record for its chapter, verse number and nonempty text. The 30 juz partitions cover every reference exactly once. All 284 authored passage references in the prophet, topic and timeline catalogues resolve. Arabic, English, Urdu, catalogue, metadata and reference files were preserved.
+On 18 November 2026 UTC, the release audit downloaded Quran.com’s QPC Hafs word records for all 114 surahs. In the previous Tanzil edition, 53 ayat were byte-identical and 6,183 differed from the selected edition. These are exact Unicode comparisons across script editions. In 2:38 the seventh word ends with U+064A in Quran.com and U+0649 in the previous release. Every bundled word now matches the selected source, without Unicode normalisation. A release check pins the exact corpus and font hashes. English, Urdu, bookmarks, metadata and editorial links are preserved. Translation checks establish reference alignment and nonempty records. They do not certify translation quality.
 
 These checks verify data integrity and linkage. A scholar's review of translation quality, thematic interpretation or the completeness of the research index is a separate, unfinished task. No new Arabic verse text, translations or tafsir were authored for this update.
 

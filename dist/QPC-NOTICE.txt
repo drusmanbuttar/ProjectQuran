@@ -1,0 +1,11 @@
+Pockett Quran Arabic reading edition
+QPC Hafs. King Fahd Glorious Quran Printing Complex, Al-Madinah, Saudi Arabia.
+Arabic text verified against Quran.com, Quran Foundation (text_qpc_hafs).
+Each numbered ayah contains its word records in source order separated by a space.
+The reader displays the surah and ayah number independently of the Arabic text.
+All Arabic word strings are reproduced verbatim, including combining marks and pause signs.
+Quran Foundation font guide: https://api-docs.quran.foundation/docs/tutorials/fonts/font-rendering/
+King Fahd Complex: https://qurancomplex.gov.sa/
+QPC edition: https://qul.tarteel.ai/resources/quran-script/86/docs
+The original, unmodified font is provided with its embedded KFGQPC licence in QPC-FONT-LICENSE.txt.
+Surah and juz metadata is from Tanzil. See TANZIL-LICENSE.txt. English and Urdu attribution is in sources.json.

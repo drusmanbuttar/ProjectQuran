@@ -187,14 +187,14 @@ function savedView() {
 }
 function sourceView() {
   const links=[
-    ['Arabic Quran','Tanzil Uthmani 1.1. The Arabic is bundled verbatim. All 6,236 numbered ayat are checked against the project’s locked reference.','Tanzil text and attribution','https://tanzil.net/docs/text_license'],
+    ['Arabic Quran','QPC Hafs from the King Fahd Glorious Quran Printing Complex. Every numbered ayah is checked character for character against the Quran.com word records.','Edition and source','QPC-NOTICE.txt'],
     ['English interpretation','Marmaduke Pickthall, The Meaning of the Glorious Koran (1930). Translations present the meanings of the Arabic text.','Dataset provenance','sources.json'],
     ['Urdu interpretation','Muhammad Junagarhi, distributed by QuranEnc.com, version 1.1.3.','QuranEnc edition','https://quranenc.com/en/browse/urdu_junagarhi'],
-    ['Arabic typography','Amiri Quran is bundled with the app for offline reading. Surah and juz metadata comes from Tanzil.','Font licence','AMIRI-OFL.txt'],
+    ['Arabic typography','QPC Hafs renders the ayat offline. Amiri Quran is used for headings. Surah and juz metadata comes from Tanzil.','QPC font licence','QPC-FONT-LICENSE.txt'],
     ['Connected study','Muhammad Usman Buttar began this research project in 2015. Its prophetic narratives, timelines and themes form a selective editorial index. Some ayat appear under several themes. Each entry links to its source passages.','Dataset licence','DATA-LICENSE.txt']
   ];
   return title('Sources & method')+links.map(([h,body,label,href])=>`<section class="source-block"><h2>${h}</h2><p>${body}</p><a href="${href}" target="_blank" rel="noopener">${label} ↗</a></section>`).join('')+
-    '<a class="text-link" href="TANZIL-LICENSE.txt" target="_blank">Tanzil attribution notice ↗</a>';
+    '<a class="text-link" href="TANZIL-LICENSE.txt" target="_blank">Tanzil metadata notice ↗</a> · <a class="text-link" href="AMIRI-OFL.txt" target="_blank">Amiri heading font licence ↗</a>';
 }
 function setRecent(ref) {
   if (!ref || (recent?.ref===ref && recent?.mode===state.mode)) return;
@@ -215,7 +215,8 @@ function render() {
   const serial=++navigationSerial;
   const [raw='', query='']=location.hash.slice(1).split('?');
   const routes=['home','reader','index','find','study','prophets','topics','timeline','revelation','saved','sources'];
-  const view=routes.includes(raw)?raw:'home', params=new URLSearchParams(query);
+  const firstView=document.documentElement.dataset.startView==='reader'?'reader':'home';
+  const view=routes.includes(raw)?raw:firstView, params=new URLSearchParams(query);
   state.view=view;state.readerReady=false;state.target='';
   const views={home,index:directory,find:finder,saved:savedView,sources:sourceView,reader:()=>reader(params)};
   main.innerHTML=views[view]?views[view]():studyView(view,params);

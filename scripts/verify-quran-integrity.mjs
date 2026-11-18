@@ -1,95 +1,36 @@
-import fs from 'node:fs';
-import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
-const arabic = JSON.parse(fs.readFileSync(new URL('../dist/arabic.json', import.meta.url), 'utf8'));
-const reference = JSON.parse(fs.readFileSync(new URL('./quran-uthmani-reference.json', import.meta.url), 'utf8'));
-
-const EXPECTED_SURAHS = 114;
-const EXPECTED_VERSES = 6236;
-const failures = [];
-const numericKeys = Object.keys(arabic).filter(k => /^\d+$/.test(k)).sort((a,b) => Number(a) - Number(b));
-const expectedKeys = Object.keys(reference.verses);
-
-function fail(message) {
-  failures.push(message);
-}
-
-if (reference.meta?.source !== 'tanzil-uthmani') fail('Reference source is not tanzil-uthmani.');
-if (reference.meta?.normalization !== 'NFC') fail('Reference normalization is not NFC.');
-if (reference.meta?.hash_algorithm !== 'sha256') fail('Reference hash algorithm is not SHA-256.');
-if (expectedKeys.length !== EXPECTED_VERSES) fail(`Reference contains ${expectedKeys.length} verses; expected ${EXPECTED_VERSES}.`);
-if (numericKeys.length !== EXPECTED_SURAHS) fail(`Arabic corpus contains ${numericKeys.length} surahs; expected ${EXPECTED_SURAHS}.`);
-if (!String(arabic._license || '').includes('Tanzil')) fail('Arabic corpus does not contain the expected Tanzil licence marker.');
-
-let total = 0;
-let matched = 0;
-const seen = new Set();
-
-for (let s = 1; s <= EXPECTED_SURAHS; s++) {
-  const verses = arabic[String(s)];
-  if (!Array.isArray(verses)) {
-    fail(`Missing Surah ${s}.`);
-    continue;
-  }
-
-  const expectedForSurah = expectedKeys.filter(k => k.startsWith(`${s}:`)).length;
-  if (verses.length !== expectedForSurah) {
-    fail(`Surah ${s} has ${verses.length} verses; reference expects ${expectedForSurah}.`);
-  }
-
-  for (let i = 0; i < verses.length; i++) {
-    const expectedVerseNumber = i + 1;
-    const entry = verses[i];
-    const key = `${s}:${expectedVerseNumber}`;
-    total++;
-
-    if (seen.has(key)) fail(`Duplicate verse reference ${key}.`);
-    seen.add(key);
-
-    if (entry.chapter !== s) fail(`${key}: chapter field is ${entry.chapter}; expected ${s}.`);
-    if (entry.verse !== expectedVerseNumber) fail(`${key}: verse field is ${entry.verse}; expected ${expectedVerseNumber}.`);
-    if (typeof entry.text !== 'string' || !entry.text.length) {
-      fail(`${key}: Arabic text is empty or not a string.`);
-      continue;
-    }
-
-    const expectedHash = reference.verses[key];
-    if (!expectedHash) {
-      fail(`${key}: no trusted reference hash exists.`);
-      continue;
-    }
-
-    const normalized = entry.text.normalize('NFC');
-    const actualHash = crypto.createHash('sha256').update(normalized, 'utf8').digest('hex');
-
-    if (actualHash !== expectedHash) {
-      fail(`${key}: SHA-256 mismatch (expected ${expectedHash}, got ${actualHash}).`);
-    } else {
-      matched++;
-    }
+// These digests come from the independent Quran.com retrieval in Actions run 44381500925.
+// The JSON map is in numbered surah:ayah order. No Unicode normalisation is permitted.
+const expectedCorpus = 'b49b11a10fd0b24b79d3af2d89aa72a1427c79ccd46e98a86797b233390d5c0b';
+const expected238 = 'c5cdadb502c02b9880b503111ce2ff1916434b6f9c550fa7150dc4cd75996972';
+const expectedFont = '8c00e7a7d5f773bcfb1642fdcfba505dbd81975fef39f14718827a32d075020c';
+const digest = data => createHash('sha256').update(data).digest('hex');
+const read = name => readFileSync(new URL('../dist/' + name, import.meta.url));
+const arabic = JSON.parse(read('arabic.json'));
+const metadata = JSON.parse(read('metadata.json'));
+const records = {};
+assert.equal(Object.keys(arabic).filter(key => /^\d+$/.test(key)).length, 114);
+assert.equal(metadata.chapters.length, 114);
+for (const [index, chapter] of metadata.chapters.entries()) {
+  const surah = index + 1;
+  assert.equal(chapter.id, surah);
+  assert.equal(arabic[surah].length, chapter.total_verses);
+  for (const [index, entry] of arabic[surah].entries()) {
+    const ayah = index + 1;
+    const key = surah + ':' + ayah;
+    assert.equal(entry.chapter, surah, key);
+    assert.equal(entry.verse, ayah, key);
+    assert.ok(typeof entry.text === 'string' && entry.text.length, key);
+    records[key] = entry.text;
   }
 }
+assert.equal(Object.keys(records).length, 6236);
+assert.equal(records['2:38'].split(' ')[6], 'مِّنِّي', 'Al-Baqarah 2:38 word 7');
+assert.equal(digest(records['2:38']), expected238, 'Al-Baqarah 2:38');
+assert.equal(digest(JSON.stringify(records)), expectedCorpus, 'Quran.com QPC Hafs word-record digest');
+assert.equal(digest(read('fonts/UthmanicHafs1Ver18.woff2')), expectedFont, 'QPC Hafs font');
+console.log('PASS: all 6,236 ordered ayat reproduce the Quran.com QPC Hafs word records exactly, including 2:38. The paired Quran Foundation font also matches.');
 
-for (const key of expectedKeys) {
-  if (!seen.has(key)) fail(`Reference verse ${key} is missing from dist/arabic.json.`);
-}
-
-if (total !== EXPECTED_VERSES) {
-  fail(`Corpus contains ${total} verse records; expected ${EXPECTED_VERSES}.`);
-}
-
-const baqarah238 = arabic['2']?.[37]?.text;
-if (baqarah238) {
-  const hash238 = crypto.createHash('sha256').update(baqarah238.normalize('NFC'), 'utf8').digest('hex');
-  if (hash238 !== reference.verses['2:38']) fail('Al-Baqarah 2:38 failed its dedicated integrity check.');
-}
-
-if (failures.length) {
-  console.error('FAIL: Quran corpus integrity check failed.');
-  for (const message of failures.slice(0, 100)) console.error(' - ' + message);
-  if (failures.length > 100) console.error(` - ...and ${failures.length - 100} more failures.`);
-  process.exit(1);
-}
-
-console.log(`PASS: ${matched}/${EXPECTED_VERSES} ayat match the locked Tanzil-Uthmani SHA-256 reference after NFC normalization.`);
-console.log('PASS: 114 surahs, exact verse ordering, no missing/extra verse references, and Al-Baqarah 2:38 verified.');

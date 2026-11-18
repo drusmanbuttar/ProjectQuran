@@ -31,7 +31,7 @@ sw=(d/'sw.js').read_text()
 assets=re.search(r'const FILES=\[(.*?)\];',sw).group(1)
 for asset in re.findall(r"'([^']+)'",assets):
  assert asset=='./' or (d/asset).exists(),asset
-assert 'Tanzil' in ar['_license']
+assert 'QPC Hafs' in ar['_license']
 font=d/'fonts'/'AmiriQuran.ttf'; assert font.exists() and font.stat().st_size>100000
 assert (d/'AMIRI-OFL.txt').exists()
 css=(d/'style.css').read_text(); assert "font-family:'Amiri Quran'" in css and "fonts/AmiriQuran.ttf" in css
