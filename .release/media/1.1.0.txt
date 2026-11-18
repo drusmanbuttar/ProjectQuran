@@ -1,0 +1,5 @@
+Pockett Quran 1.1.0 with the new open-Quran emblem.
+
+QPC Hafs edition, build 22.
+Wait for Android WebView accessibility to initialise.
+Wait for the visible Reading room before accepting iPad and iPhone screenshots.

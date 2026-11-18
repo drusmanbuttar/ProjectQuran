@@ -7,14 +7,14 @@ on:
     paths:
       - 'dist/arabic.json'
       - 'scripts/verify-quran-integrity.mjs'
-      - 'scripts/quran-uthmani-reference.json'
+      - 'dist/fonts/UthmanicHafs1Ver18.woff2'
       - 'package.json'
       - '.github/workflows/quran-integrity.yml'
   pull_request:
     paths:
       - 'dist/arabic.json'
       - 'scripts/verify-quran-integrity.mjs'
-      - 'scripts/quran-uthmani-reference.json'
+      - 'dist/fonts/UthmanicHafs1Ver18.woff2'
       - 'package.json'
       - '.github/workflows/quran-integrity.yml'
   workflow_dispatch:

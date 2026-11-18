@@ -42,9 +42,9 @@ islam,muslim,ayah,verse,translation,juz,arabic,history,timeline,stories,reading,
 
 ## URLs
 
-- Support: `https://drusmanbuttar.github.io/ProjectQuran/support.html`
-- Privacy: `https://drusmanbuttar.github.io/ProjectQuran/privacy.html`
-- Marketing: `https://drusmanbuttar.github.io/ProjectQuran/`
+- Support: `https://usmanbuttar.com/apps/pockett-quran/support.html`
+- Privacy: `https://usmanbuttar.com/apps/pockett-quran/privacy.html`
+- Marketing: `https://usmanbuttar.com`
 
 ## App privacy answers
 
