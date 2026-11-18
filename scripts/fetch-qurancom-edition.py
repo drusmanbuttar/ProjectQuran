@@ -12,7 +12,7 @@ OUT = Path('edition-audit')
 OUT.mkdir(exist_ok=True)
 FONT = 'https://verses.quran.foundation/fonts/quran/hafs/uthmanic_hafs/UthmanicHafs1Ver18.woff2'
 BASES = ['https://api.quran.com/api/v4', 'https://api.qurancdn.com/api/qdc']
-PARAMS = 'words=true&fields=text_qpc_hafs,qpc_uthmani_hafs&word_fields=text_qpc_hafs,qpc_uthmani_hafs&per_page=50'
+PARAMS = 'words=true&word_fields=text_qpc_hafs&per_page=50'
 def get(url):
     for attempt in range(4):
         try:
@@ -27,7 +27,7 @@ def hashtext(t):
 def bychapter(base, s, p):
     return json.loads(get(f'{base}/verses/by_chapter/{s}?{PARAMS}&page={p}'))
 def word_text(word):
-    return word.get('text_qpc_hafs') or word.get('qpc_uthmani_hafs')
+    return word.get('text_qpc_hafs')
 def extract(v):
     words=v['words']
     assert [w['position'] for w in words]==list(range(1,len(words)+1))
