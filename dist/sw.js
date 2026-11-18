@@ -1,4 +1,4 @@
-const CACHE='pockett-quran-reading-1.1.0-v1';
+const CACHE='pockett-quran-reading-1.1.0-v2';
 const FILES=['./','./index.html','./style.css','./fonts/AmiriQuran.ttf','./AMIRI-OFL.txt','./app.js','./icons.js','./library.js','./illumination.png','./catalog.js','./arabic.json','./english.json','./urdu.json','./metadata.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./sources.json','./DATA-LICENSE.txt','./TANZIL-LICENSE.txt','./privacy.html','./support.html'];
 self.addEventListener('install', event=>{
   event.waitUntil((async()=>{

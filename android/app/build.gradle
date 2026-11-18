@@ -7,7 +7,7 @@ android {
         applicationId "com.drusmanbuttar.projectquran"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "210000")
+        versionCode = Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "210001")
         versionName = System.getenv("ANDROID_VERSION_NAME") ?: "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

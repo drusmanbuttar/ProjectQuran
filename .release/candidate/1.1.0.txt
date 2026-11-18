@@ -1,4 +1,4 @@
 Pockett Quran 1.1.0
-Apple TestFlight build 20
-Google Play internal testing version code 210000
+Apple TestFlight build 21
+Google Play internal testing version code 210001
 Layout verification includes small tablets.
