@@ -54,6 +54,8 @@ jobs:
           echo "Building Android versionName=${ANDROID_VERSION_NAME} versionCode=${ANDROID_VERSION_CODE}"
           cd android
           ./gradlew bundleRelease
+      - name: Verify the signed Android payload
+        run: python3 scripts/verify-store-package.py android/app/build/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         with:
           name: pockett-quran-android-1.1.0-210002
