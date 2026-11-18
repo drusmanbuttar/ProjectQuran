@@ -1,0 +1,19 @@
+name: Stage a Pockett Quran candidate
+on:
+  push:
+    branches: ['release/**']
+    paths: ['.release/candidate/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/app-validation.yml
+  ios:
+    needs: verify
+    uses: ./.github/workflows/ios-testflight.yml
+    secrets: inherit
+  android:
+    needs: verify
+    uses: ./.github/workflows/android-play.yml
+    secrets: inherit

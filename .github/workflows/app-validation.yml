@@ -1,6 +1,7 @@
 name: App validation
 
 on:
+  workflow_call:
   pull_request:
     paths:
       - 'dist/**'
@@ -40,3 +41,8 @@ jobs:
         run: npm ci
       - name: Run full app validation
         run: npm run check
+      - name: Exercise mobile, tablet and offline reader flows in Chrome
+        run: |
+          python3 -m venv "$RUNNER_TEMP/quran-browser"
+          "$RUNNER_TEMP/quran-browser/bin/pip" install selenium==4.34.2
+          "$RUNNER_TEMP/quran-browser/bin/python" scripts/check-browser.py

@@ -1,0 +1,3 @@
+Pockett Quran 1.1.0
+Apple TestFlight build 20
+Google Play internal testing version code 210000

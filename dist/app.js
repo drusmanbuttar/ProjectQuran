@@ -1,70 +1,318 @@
-import {prophets,topics,tracks} from './catalog.js';
-const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const main=$('#main'),mobileMenu=$('#mobile-menu');let db,meta,flat=[],language='both',track='origins',page=0,view='timeline',readerRefs=[],readerTitle='',detailRefs=[],detailItem=null,detailActive=false,detailOrigin='home';
-const storage={get(k,f){try{return JSON.parse(localStorage.getItem('pq-'+k))??f}catch{return f}},set(k,v){try{localStorage.setItem('pq-'+k,JSON.stringify(v));return true}catch{toast('Storage is unavailable or full. Export a backup before leaving.');return false}}};
-let saved=storage.get('saved',[]);language=storage.get('language','both');if(!['en','ur','ar','both'].includes(language))language='both';
-let lastRead=storage.get('last-read',''),readerSurah=0,readerJuz=0;
-let arabicSize=Number(storage.get('arabic-size',34));if(!Number.isFinite(arabicSize)||arabicSize<28||arabicSize>44)arabicSize=34;document.documentElement.style.setProperty('--arabic-reader-size',arabicSize+'px');
-function toast(s){$('#toast').textContent=s;$('#toast').style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>$('#toast').style.display='none',5000)}
-function refsExpand(refs){const out=[];for(const r of refs){const m=/^(\d+):(\d+)(?:-(\d+))?$/.exec(r);if(!m)throw Error('Use references such as 2:30 or 2:30-39.');const s=+m[1],start=+m[2],end=+(m[3]||m[2]);if(!db.ar[s]||start<1||end<start||end>db.ar[s].length)throw Error('Verse reference outside the Quran: '+r);for(let v=start;v<=end;v++)out.push(s+':'+v)}return [...new Set(out)]}
-const verseData=ref=>{const [s,v]=ref.split(':').map(Number);return {s,v,ar:db.ar[s][v-1].text,en:db.en[s][v-1].text,ur:db.ur[s][v-1].text}};
-function validLastRead(){if(!lastRead)return '';try{return refsExpand([lastRead]).length===1?lastRead:''}catch{return ''}}
-function lastReadCard(){const ref=validLastRead();if(!ref)return '<div class="continue-card continue-empty"><div><span class="eyebrow">CONTINUE READING</span><strong>Your reading place will appear here.</strong><small>Use “Mark last read” beside any ayah in the Quran reader.</small></div><a href="#reader">Start with Al-Faatiha →</a></div>';const [s,v]=ref.split(':').map(Number),c=meta.chapters[s-1];return '<div class="continue-card"><div><span class="eyebrow">CONTINUE READING</span><strong>'+esc(c.transliteration)+' · '+ref+'</strong><small>'+esc(c.translation)+' · Ayah '+v+'</small></div><button type="button" data-continue-reading>Continue →</button></div>'}
-function markLastRead(ref){try{refsExpand([ref]);lastRead=ref;storage.set('last-read',ref);document.querySelectorAll('[data-last-read]').forEach(el=>{const active=el.dataset.lastRead===ref;el.textContent=active?'✓ Last read':'Mark last read';el.classList.toggle('last-read-active',active);el.setAttribute('aria-pressed',active)});toast('Reading place saved at '+ref+'.')}catch{toast('Could not save this reading place.')}}
-function openReaderAt(ref){const [s,v]=ref.split(':').map(Number);if(!db.ar[s]||!db.ar[s][v-1])return;readerSurah=s;readerJuz=0;readerRefs=db.ar[s].map(x=>s+':'+x.verse);readerTitle=meta.chapters[s-1].transliteration+' · '+meta.chapters[s-1].translation;page=0;if(location.hash!=='#reader')history.pushState({pockettView:'reader'},'','#reader');view='reader';renderReader();setTimeout(()=>{const el=document.querySelector('[data-ref="'+ref+'"]');if(el){el.classList.add('last-read-highlight');el.scrollIntoView({block:'center'})}},0)}
-function fontSizeControl(){return `<div class="font-size-control" role="group" aria-label="Arabic Quran text size"><span>Arabic size</span><button type="button" data-arabic-size="-2" aria-label="Decrease Arabic text size">A−</button><span class="font-size-value">${arabicSize}px</span><button type="button" data-arabic-size="2" aria-label="Increase Arabic text size">A+</button></div>`}
-function languageControl(id='language'){return `<label>Translation<select id="${id}" class="language-select"><option value="both" ${language==='both'?'selected':''}>English + Urdu</option><option value="en" ${language==='en'?'selected':''}>English · Pickthall (1930)</option><option value="ur" ${language==='ur'?'selected':''}>Urdu · Junagarhi</option><option value="ar" ${language==='ar'?'selected':''}>Arabic only</option></select></label>`}
-function verse(ref){const x=verseData(ref);const related=topics.filter(t=>t.expanded.includes(ref));return `<article class="verse" data-ref="${ref}"><div class="verse-head"><span>${esc(meta.chapters[x.s-1].transliteration)} · ${ref}</span><div class="verse-actions"><button data-last-read="${ref}" class="${lastRead===ref?'last-read-active':''}" aria-pressed="${lastRead===ref}">${lastRead===ref?'✓ Last read':'Mark last read'}</button><button data-save="${ref}" class="${saved.includes(ref)?'saved-active':''}" aria-pressed="${saved.includes(ref)}">${saved.includes(ref)?'★ Saved':'☆ Save'}</button></div></div><p class="arabic" lang="ar" dir="rtl">${esc(x.ar)}</p>${(language==='both'?['en','ur']:language==='ar'?[]:[language]).map(lang=>`<p class="translation ${lang==='ur'?'urdu':''}" lang="${lang}" ${lang==='ur'?'dir="rtl"':''}>${esc(x[lang])}</p><small>${lang==='en'?'Marmaduke Pickthall (1930) · English interpretation':'Muhammad Junagarhi · QuranEnc.com · Urdu v1.1.3'}</small>`).join('')}<div class="verse-bottom">${related.map(t=>`<button data-topic="${t.id}">${esc(t.name)}</button>`).join('')}</div></article>`}
-const intro=(eyebrow,title,desc)=>`<div class="intro"><div><span class="eyebrow">${eyebrow}</span><h1>${title}</h1><p>${desc}</p></div><div class="bismillah" lang="ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div></div>`;
-function render(){detailActive=false;const hash=location.hash.slice(1).split('?')[0]||'home';view=['home','timeline','prophets','topics','reader','revelation','saved','sources'].includes(hash)?hash:'home';document.querySelectorAll('[data-nav]').forEach(a=>{a.classList.toggle('active',a.dataset.nav===view);if(a.dataset.nav===view)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});document.title='Pockett Quran · '+({home:'Home',timeline:'Timelines',reader:'Quran reader'}[view]||view.charAt(0).toUpperCase()+view.slice(1));({home:renderHome,timeline:renderTimeline,prophets:renderProphets,topics:renderTopics,reader:renderReader,revelation:renderRevelation,saved:renderSaved,sources:renderSources}[view])();}
-function navigate(name){if(location.hash==='#'+name)render();else location.hash=name}
-function renderHome(){main.innerHTML='<section class="home-welcome"><div class="home-welcome-copy"><span class="eyebrow">POCKETT QURAN</span><h1>Read the Quran.<br>Explore the connections.</h1><p>Begin with the Quran text or explore the research project when you want deeper study.</p></div><div class="home-bismillah" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div></section>'+lastReadCard()+'<section aria-labelledby="start-reading"><div class="section-row home-section-title"><div><span class="eyebrow">START READING</span><h2 id="start-reading">Open the Quran</h2></div><span class="small">Arabic · English · Urdu</span></div><div class="home-actions"><a class="home-action home-action-primary" href="#reader"><span class="home-action-icon" aria-hidden="true">▤</span><span><strong>Quran reader</strong><small>Open the complete Quran text</small></span><span aria-hidden="true">→</span></a><button class="home-action" type="button" data-home-reader="surah"><span class="home-action-icon" aria-hidden="true">١١٤</span><span><strong>Browse Surahs</strong><small>Choose from all 114 surahs</small></span><span aria-hidden="true">→</span></button><button class="home-action" type="button" data-home-reader="juz"><span class="home-action-icon" aria-hidden="true">٣٠</span><span><strong>Browse Juz</strong><small>Navigate all 30 juz</small></span><span aria-hidden="true">→</span></button><a class="home-action" href="#saved"><span class="home-action-icon" aria-hidden="true">☆</span><span><strong>Saved verses</strong><small>Return to passages you kept</small></span><span aria-hidden="true">→</span></a></div></section><section class="home-research" aria-labelledby="research-project"><div class="section-row home-section-title"><div><span class="eyebrow">RESEARCH PROJECT</span><h2 id="research-project">Explore the connections</h2></div><span class="small">Source-linked study tools</span></div><div class="home-research-grid"><a href="#timeline"><span>◷</span><strong>Timelines</strong><small>Four study paths through connected passages</small></a><a href="#prophets"><span>◇</span><strong>Prophets</strong><small>Selected Quranic passages for 25 prophets</small></a><a href="#topics"><span>▦</span><strong>Research categories</strong><small>30 thematic starting points across the Quran</small></a><a href="#revelation"><span>◐</span><strong>Revelation context</strong><small>Browse traditional Meccan and Medinan classification</small></a></div></section><div class="home-trust"><span><strong>114</strong> surahs</span><span><strong>6,236</strong> numbered verses</span><span><strong>30</strong> juz</span><a href="#sources">Sources & methodology ↗</a></div>'}
-function renderTimeline(){const t=tracks[track];main.innerHTML=intro('EXPLORE THE CONNECTIONS','A journey through the Quran.','Follow the narratives. Discover shared themes. Return to the source.')+`<div class="stats"><span><strong>114</strong> surahs</span><span><strong>30</strong> juz</span><span><strong>25</strong> prophets indexed</span><span><strong>${topics.length}</strong> research categories</span></div><div class="tabs" role="group" aria-label="Timeline paths">${Object.entries(tracks).map(([k,t])=>`<button data-track="${k}" class="${track===k?'active':''}" aria-pressed="${track===k}">${t.name}</button>`).join('')}</div><div class="explorer"><section class="panel"><div class="section-row"><h2>${t.name}</h2><span class="pill amber">Relative sequence</span></div><p class="small">${t.description}</p><div class="timeline">${t.events.map(e=>`<div class="event"><div class="event-meta">${e.era}</div><button class="event-card" data-event="${e.id}"><div><h3>${e.title}</h3><p>${e.description}</p><div class="event-foot"><span class="pill">Quran</span><span>${e.refs.length} linked passages</span><span>Explore verses ↗</span></div></div><span class="arabic-name" lang="ar">${e.ar}</span></button></div>`).join('')}</div></section><aside class="panel guide"><span class="eyebrow">A SOURCE-FIRST JOURNEY</span><h3 style="margin-top:15px">Read across<br>the connections.</h3><p>Every story is a doorway into the verses, their context, and the themes they share.</p><div class="guide-item"><strong>01 &nbsp; Choose a path</strong><p>Creation, prophetic narratives, revelation, or the Hereafter.</p></div><div class="guide-item"><strong>02 &nbsp; Open an event</strong><p>Read Arabic with English and Urdu, and follow the references.</p></div><div class="guide-item"><strong>03 &nbsp; Save key verses</strong><p>Keep important passages together for later reading.</p></div><div class="note">Dates are left unknown where the sources do not establish them.</div><a href="#sources">Our research method ↗</a></aside></div>`}
-function renderProphets(){main.innerHTML=intro('PEOPLE & NARRATIVES','The prophets.','Open a name to explore selected Quranic passages. Peace be upon them all.')+`<div class="note">This is a study directory, not a definitive chronological order. Passage lists are a starter index and are not exhaustive. Dhul-Kifl is included in the commonly taught list; his identity and prophetic status are discussed by scholars.</div><div class="grid">${prophets.map(p=>`<button class="prophet-card" data-prophet="${p.id}"><div><h3>${p.name}</h3><small>${p.alias!==p.name?p.alias+' · ':''}${p.refs.length} passages</small></div><span lang="ar">${p.ar}</span></button>`).join('')}</div>`}
-function renderTopics(){main.innerHTML=intro('ONE VERSE, MANY CONNECTIONS','30 research categories.','Explore guidance across surahs. A verse can connect to more than one theme.')+`<p class="note">Proposed structure for 30 thematic categories—not the 30 juz. ${new Set(topics.flatMap(t=>t.expanded)).size} of 6,236 verses currently have selected category links. Categories overlap; comprehensive indexing and scholarly review remain in progress.</p><div class="grid">${topics.map((t,i)=>`<button class="topic-card" data-topic="${t.id}"><div class="card-number">${String(i+1).padStart(2,'0')} / CATEGORY</div><h3>${t.name}</h3><p>${t.description}</p><small>${t.expanded.length} indexed verses &nbsp; ↗</small></button>`).join('')}</div>`}
-function readerControls(){return `<div class="controls reader-controls"><label>Surah<select id="surah"><option value="">Select surah</option>${meta.chapters.map(c=>`<option value="${c.id}">${c.id}. ${c.transliteration} · ${c.name}</option>`).join('')}</select></label><label>Juz<select id="juz"><option value="">Select juz</option>${meta.indexes.juzs.map(j=>`<option value="${j.index}">Juz ${j.index} · ${j.sura}:${j.aya}</option>`).join('')}</select></label><label class="ayah-jump">Ayah<input id="ayah" type="number" min="1" inputmode="numeric" ${readerSurah?'':'disabled'} placeholder="${readerSurah?'1–'+db.ar[readerSurah].length:'Select a surah'}"></label>${languageControl()}${fontSizeControl()}</div>`}
-function setSurah(s){readerSurah=s;readerJuz=0;readerRefs=db.ar[s].map(v=>s+':'+v.verse);readerTitle=meta.chapters[s-1].transliteration+' · '+meta.chapters[s-1].translation;page=0;renderReader()}
-function renderReader(){if(!readerRefs.length){readerSurah=1;readerJuz=0;readerRefs=db.ar[1].map(v=>'1:'+v.verse);readerTitle='Al-Faatiha · The Opening'}const step=readerSurah?`<div class="reader-step"><button type="button" data-surah-step="-1" ${readerSurah===1?'disabled':''}>← Previous surah</button><button type="button" data-surah-step="1" ${readerSurah===114?'disabled':''}>Next surah →</button></div>`:'';main.innerHTML=intro('THE COMPLETE TEXT','Quran reader.','Arabic Quran with English and Urdu translations. Browse by surah or juz and jump directly to an ayah.')+readerControls()+`<div class="section-row reader-title-row"><h2>${esc(readerTitle)}</h2><span class="small">${readerRefs.length} ayahs · continuous scroll</span></div>${step}<div class="verses">${readerRefs.map(verse).join('')}</div>`;if(readerSurah)$('#surah').value=readerSurah;if(readerJuz)$('#juz').value=readerJuz}
-function renderRevelation(){main.innerHTML=intro('REVELATION CONTEXT','Meccan & Medinan.','Browse the traditional surah-level classification preserved in the source metadata.')+`<div class="note warning">These classifications do not establish the exact revelation order of every verse. Some surahs include passages associated with different periods, and scholarly classifications can differ.</div><div class="controls"><label>Period<select id="period"><option value="all">All surahs</option><option value="meccan">Meccan</option><option value="medinan">Medinan</option></select></label><button data-revelation-track>Open revelation timeline</button></div><div id="revelation-list"></div>`;revelationList('all')}
-function revelationList(type){$('#revelation-list').innerHTML=`<div class="chapter-list">${meta.chapters.filter(c=>type==='all'||c.type===type).map(c=>`<button data-surah="${c.id}"><strong>${c.id}. ${c.transliteration}</strong><br><small>${c.type==='meccan'?'Meccan':'Medinan'} · ${c.total_verses} verses</small></button>`).join('')}</div>`}
-function openDetail(item,origin=view){const entering=!detailActive;detailItem=item;detailRefs=refsExpand(item.refs);detailOrigin=origin;detailActive=true;if(entering)history.pushState({pockettDetail:true},'',location.href);renderDetail();window.scrollTo(0,0)}
-function renderDetail(){const item=detailItem;main.innerHTML=`<div class="inline-reader-head"><span class="eyebrow">CONNECTED READING</span><span class="swipe-hint">Swipe from the left edge to go back</span></div><div class="intro inline-reader-intro"><div><h1>${esc(item.title||item.name)} ${item.ar?`<span lang="ar">· ${item.ar}</span>`:''}</h1>${item.description?`<p>${esc(item.description)}</p>`:''}</div></div><p class="small">Selected passages: ${item.refs.map(esc).join(' · ')}. ${detailRefs.length} unique ayahs · continuous scroll. This index is not exhaustive.</p>${item.hadith?.length?`<div class="note"><strong>Related hadith · separate source</strong>${item.hadith.map(h=>`<p style="margin:10px 0 0"><a href="${h.url}" target="_blank" rel="noopener">${h.label} ↗</a><br>${h.note}</p>`).join('')}</div>`:''}<div class="controls inline-reader-controls">${languageControl('detail-language')}${fontSizeControl()}</div><div class="verses">${detailRefs.map(verse).join('')}</div>`}
-function renderSaved(){const valid=saved.filter(ref=>{try{return refsExpand([ref]).length===1}catch{return false}});main.innerHTML=intro('YOUR READING COLLECTION','Saved verses.','Keep passages close for further study on this device.')+(valid.length?`<div class="section-row"><span class="small">${valid.length} saved ayahs · continuous scroll</span></div><div class="controls">${languageControl()}</div><div class="verses">${valid.map(verse).join('')}</div>`:'<div class="empty"><h2>Your collection starts with one verse.</h2><p>Choose Save beside any verse in the reader or a timeline.</p><a href="#reader">Open the Quran reader</a></div>')}
+import {prophets, topics, tracks} from './catalog.js';
+import {icon} from './icons.js';
+import {fold, parseRef, expandReferences, makeIndex, findPassages} from './library.js';
 
-
-
-function renderSources(){main.innerHTML=intro('TRANSPARENCY & CARE','Sources & method.','The Quranic text, translations, and editorial study links are presented as distinct layers.')+`<article class="panel prose"><p>Pockett Quran includes the complete Quran in 114 surahs and 6,236 numbered verses, English and Urdu translations, 30 juz boundaries, selected passages for 25 prophets, 30 thematic categories, and four study paths. Topic and event links are editorial starting points rather than an exhaustive classification or scholarly certification.</p><p>The Arabic is the unmodified <a href="https://tanzil.net/docs/text_license" target="_blank" rel="noopener">Tanzil Uthmani text v1.1</a> (CC BY 3.0). English meanings are from Marmaduke Pickthall’s 1930 The Meaning of the Glorious Koran. It is a respected historical, relatively literal English interpretation, but no English translation is treated here as identical to or uniquely authoritative over the Arabic Quran. The Urdu translation and notes are by Muhammad Junagarhi through <a href="https://quranenc.com/en/browse/urdu_junagarhi" target="_blank" rel="noopener">QuranEnc.com</a> v1.1.3. Surah and juz metadata is from Tanzil. Quranic Arabic is rendered with <a href="https://aliftype.com/amiri" target="_blank" rel="noopener">Amiri Quran 1.003</a>, bundled locally under the <a href="AMIRI-OFL.txt" target="_blank">SIL Open Font License 1.1</a>. <a href="sources.json" target="_blank">Detailed provenance</a>, the <a href="DATA-LICENSE.txt" target="_blank">dataset licence</a>, and the <a href="TANZIL-LICENSE.txt" target="_blank">Tanzil notice</a> remain available.</p></article>`}
-
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-if(b.hasAttribute('data-mobile-more')){if(!mobileMenu.open)mobileMenu.showModal();return}
-if(b.hasAttribute('data-mobile-menu-close')){if(mobileMenu.open)mobileMenu.close();return}
-if(b.dataset.homeReader){const target=b.dataset.homeReader;if(location.hash!=='#reader')history.pushState({pockettView:'reader'},'','#reader');view='reader';renderReader();setTimeout(()=>{const el=$('#'+target);if(el)el.focus()},0);return}
-if(b.hasAttribute('data-continue-reading')){const ref=validLastRead();if(ref)openReaderAt(ref);return}
-if(b.dataset.lastRead){markLastRead(b.dataset.lastRead);return}
-if(b.dataset.surahStep){if(readerSurah)setSurah(Math.max(1,Math.min(114,readerSurah+Number(b.dataset.surahStep))));return}
-if(b.dataset.arabicSize){arabicSize=Math.max(28,Math.min(44,arabicSize+Number(b.dataset.arabicSize)));storage.set('arabic-size',arabicSize);document.documentElement.style.setProperty('--arabic-reader-size',arabicSize+'px');document.querySelectorAll('.font-size-value').forEach(el=>el.textContent=arabicSize+'px');}
-if(b.dataset.track){track=b.dataset.track;renderTimeline()}
-if(b.dataset.event){openDetail(tracks[track].events.find(x=>x.id===b.dataset.event),view);return}
-if(b.dataset.prophet){openDetail(prophets.find(x=>x.id===b.dataset.prophet),view);return}
-if(b.dataset.topic){openDetail(topics.find(x=>x.id===b.dataset.topic),view);return}
-if(b.dataset.openRef){openDetail({title:'Quran '+b.dataset.openRef,refs:[b.dataset.openRef]},view);return}
-if(b.dataset.save){const r=b.dataset.save,next=saved.includes(r)?saved.filter(x=>x!==r):[...saved,r];if(storage.set('saved',next)){saved=next;document.querySelectorAll(`[data-save="${r}"]`).forEach(el=>{el.textContent=saved.includes(r)?'★ Saved':'☆ Save';el.classList.toggle('saved-active',saved.includes(r));el.setAttribute('aria-pressed',saved.includes(r))});if(view==='saved')renderSaved();toast(saved.includes(r)?'Verse saved on this device.':'Verse removed from saved collection.')}}
-if(b.dataset.surah){const s=+b.dataset.surah;readerSurah=s;readerJuz=0;readerRefs=db.ar[s].map(v=>s+':'+v.verse);readerTitle=meta.chapters[s-1].transliteration+' · '+meta.chapters[s-1].translation;page=0;if(location.hash!=='#reader')history.pushState({pockettView:'reader'},'','#reader');view='reader';renderReader();window.scrollTo(0,0);return}
-if(b.hasAttribute('data-revelation-track')){track='revelation';navigate('timeline')}
+const $ = selector => document.querySelector(selector);
+const main = $('#main');
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const navItems = [['home','Home','home'],['index','Index','book'],['find','Find','find'],['study','Study','study'],['saved','Saved','saved']];
+const studyItems = [
+  ['prophets','Prophetic narratives','25 prophets','branch'],['topics','Themes & topics','30 categories','layers'],
+  ['timeline','Research timelines','4 study paths','time'],['revelation','Revelation context','Meccan & Medinan','study']
+];
+const state = {view:'', rows:[], mode:'surah', id:1, readerReady:false, directory:'surah', filter:'', query:'', hits:null, limit:24};
+let db, meta, index, related, scrollTimer, searchTimer, theme, language, arabicSize, saved, readingPin, recent;
+let navigationSerial = 0;
+function read(key, fallback) {
+  try {return JSON.parse(localStorage.getItem('pq-'+key)) ?? fallback;} catch {return fallback;}
+}
+function write(key, value, silent=false) {
+  try {localStorage.setItem('pq-'+key, JSON.stringify(value)); return true;}
+  catch {if (!silent) toast('Your device could not save this change.'); return false;}
+}
+function toast(message) {
+  const el = $('#toast'); el.textContent = message; el.classList.add('visible');
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('visible'), 2600);
+}
+function restore() {
+  theme = read('theme','paper') === 'night' ? 'night' : 'paper';
+  language = read('language','both');
+  if (!['ar','ur','en','both'].includes(language)) language = 'both';
+  arabicSize = Number(read('arabic-size',34));
+  if (!Number.isFinite(arabicSize) || arabicSize < 28 || arabicSize > 52) arabicSize = 34;
+  const stored = read('saved',[]);
+  saved = new Set(Array.isArray(stored) ? stored.map(r => parseRef(r,db.ar)).filter(Boolean) : []);
+  readingPin = parseRef(read('last-read',''),db.ar);
+  const previous = read('recent',null);
+  recent = previous && parseRef(previous.ref,db.ar) ? {ref:parseRef(previous.ref,db.ar),mode:previous.mode==='juz'?'juz':'surah'} : null;
+  applyAppearance();
+}
+function applyAppearance() {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.setProperty('--arabic-size', arabicSize+'px');
+  $('meta[name="theme-color"]').content = theme==='night'?'#101d1b':'#f8f6ef';
+  const toggle = $('button[data-theme]'); toggle.innerHTML = icon(theme==='night'?'sun':'moon');
+  toggle.setAttribute('aria-label',theme==='night'?'Switch to paper mode':'Switch to night mode');
+}
+function navigate(hash) {
+  if (location.hash===hash) render();
+  else location.hash=hash;
+}
+function urlFor(ref, mode='surah') {
+  const row = index.byRef.get(ref);
+  return '#reader?'+mode+'='+(mode==='juz'?row.juz:row.s)+'&ayah='+ref;
+}
+function position() {return recent || {ref:readingPin || '1:1',mode:'surah'};}
+function nav(active) {
+  const links = navItems.map(([id,name,symbol]) => `<a href="#${id}" ${active===id?'aria-current="page"':''}>${icon(symbol)}<span>${name}</span></a>`).join('');
+  for (const el of document.querySelectorAll('.desktop-nav,.mobile-nav')) el.innerHTML = links;
+}
+function title(heading, note='') {
+  return `<div class="page-title"><h1>${esc(heading)}</h1>${note?`<p>${esc(note)}</p>`:''}</div>`;
+}
+function studyLinks() {
+  return '<div class="study-grid">'+studyItems.map(([id,name,sub,symbol])=>`<a href="#${id}"><span class="study-icon">${icon(symbol)}</span><span><strong>${name}</strong><small>${sub}</small></span>${icon('chevron')}</a>`).join('')+'</div>';
+}
+function home() {
+  const {ref, mode} = position(), row = index.byRef.get(ref), c = meta.chapters[row.s-1];
+  const returning = Boolean(recent || readingPin);
+  return title('Reading room') + `<section class="folio" aria-label="Your reading place">
+    <div class="folio-ornament" aria-hidden="true"></div>
+    <div class="folio-copy"><div class="eyebrow">${icon('book')}${returning?'Continue reading':'Begin reading'}</div>
+    <h2>${esc(c.transliteration)}</h2>
+    <p>${esc(c.translation)}<span>·</span>Ayah ${row.v} of ${c.total_verses}</p>
+    <a class="gold-button" href="${returning?urlFor(ref,mode):'#reader?surah=1'}">${returning?'Resume reading':'Open the Surah'} ${icon('arrow')}</a></div>
+  </section>
+  ${readingPin && readingPin!==ref?`<a class="pinline" href="${urlFor(readingPin)}">${icon('pin')} Reading pin · ${readingPin}${icon('arrow')}</a>`:''}
+  <div class="home-columns"><section><div class="section-head"><h2>Quran index</h2><a href="#index">View all ${icon('arrow')}</a></div>
+   ${tabs(true)}<div id="directory-list">${directoryRows(true)}</div></section>
+   <section><div class="section-head"><h2>Connected study</h2></div>${studyLinks()}</section></div>`;
+}
+function tabs(compact=false) {
+  return `<div class="segment" role="group" aria-label="Browse the Quran">${['surah','juz'].map(mode=>`<button type="button" data-directory="${mode}" aria-pressed="${state.directory===mode}">${mode==='surah'?'Surahs':'Juz'} <span>${mode==='surah'?'114':'30'}</span></button>`).join('')}</div>`;
+}
+function chapterRow(c) {
+  return `<a class="index-row" href="#reader?surah=${c.id}"><span class="ordinal">${String(c.id).padStart(2,'0')}</span><span class="row-copy"><strong>${esc(c.transliteration)}</strong><small>${esc(c.translation)} · ${c.total_verses} ayat</small></span><span class="row-ar" lang="ar" dir="rtl">${esc(c.name)}</span></a>`;
+}
+function directoryRows(compact) {
+  const q = compact?'':fold(state.filter);
+  if (state.directory==='surah') {
+    const list = meta.chapters.filter(c=>!q || c.id===Number(q) || [c.transliteration,c.name,c.translation].some(x=>fold(x).includes(q)));
+    return (compact?list.slice(0,4):list).map(chapterRow).join('') || empty('No matching surah','Try a chapter number, Arabic name or English name.');
+  }
+  const list = meta.indexes.juzs.filter(j=>!q || String(j.index)===q || fold('Juz '+j.index)===q || fold(meta.chapters[j.sura-1].transliteration).includes(q));
+  return (compact?list.slice(0,4):list).map(j=>`<a class="index-row" href="#reader?juz=${j.index}"><span class="ordinal">${String(j.index).padStart(2,'0')}</span><span class="row-copy"><strong>Juz ${j.index}</strong><small>Begins in ${esc(meta.chapters[j.sura-1].transliteration)} · ${j.sura}:${j.aya}</small></span>${icon('chevron')}</a>`).join('') || empty('No matching juz','Try a number from 1 to 30.');
+}
+function directory() {
+  return title('Quran index') + tabs() + `<label class="search-box">${icon('find')}<input id="filter" type="search" value="${esc(state.filter)}" placeholder="Filter by name or number" aria-label="Filter index"></label><div id="directory-list">${directoryRows(false)}</div>`;
+}
+function empty(heading, description) {return `<div class="empty"><h2>${esc(heading)}</h2><p>${esc(description)}</p></div>`;}
+function finder() {
+  return title('Find a passage','Search the Arabic text, English and Urdu translations, or enter an ayah reference.')+
+    `<label class="search-box">${icon('find')}<input type="search" dir="auto" id="find-query" aria-label="Find a passage" placeholder="Word, phrase or 2:38" value="${esc(state.query)}"></label><div id="matches">${matches()}</div>`;
+}
+function matches() {
+  if (!state.query.trim()) return '<div class="suggest"><span>Try</span>'+['2:38','mercy','صبر'].map(q=>`<button data-query="${q}" dir="auto">${q}</button>`).join('')+'</div>';
+  const {chapters,verses} = state.hits || {chapters:[],verses:[]};
+  if (!chapters.length && !verses.length) return empty('No matches','Try another spelling, a shorter phrase or a reference such as 2:38.');
+  const q = fold(state.query);
+  const results=verses.slice(0,state.limit).map(row=>{
+    const lang=['ar','en','ur'].find(key=>fold(row[key]).includes(q)) || (language==='ur'?'ur':language==='ar'?'ar':'en');
+    return `<a class="match" href="${urlFor(row.ref)}"><strong>${esc(meta.chapters[row.s-1].transliteration)} · ${row.ref}</strong><p lang="${lang}" dir="${lang==='en'?'ltr':'rtl'}">${esc(row[lang])}</p></a>`;
+  }).join('');
+  return `<p class="result-count" role="status">${chapters.length} surahs · ${verses.length} matching ayat</p>${chapters.map(chapterRow).join('')}${results}${verses.length>state.limit?'<button class="outline" data-more>Show more ayat</button>':''}`;
+}
+function updateSearch(q) {
+  state.query=q;state.limit=24;state.hits=findPassages(q,db,index,meta);$('#matches').innerHTML=matches();
+}
+function readingSettings() {
+  return `<div class="settings"><label>Translation<select id="language">${[['both','English + Urdu'],['ar','Arabic only'],['en','English · Pickthall'],['ur','Urdu · Junagarhi']].map(([id,text])=>`<option value="${id}" ${language===id?'selected':''}>${text}</option>`).join('')}</select></label>
+    <div><span class="field-label">Arabic text size</span><div class="zoom"><button data-size="-2" aria-label="Decrease Arabic size" ${arabicSize<=28?'disabled':''}>A−</button><output>${arabicSize} px</output><button data-size="2" aria-label="Increase Arabic size" ${arabicSize>=52?'disabled':''}>A+</button></div></div></div>`;
+}
+function verse(row) {
+  const {ref}=row, isSaved=saved.has(ref), isPin=readingPin===ref;
+  const chips=related.get(ref)||[];
+  return `<article class="verse" id="v-${ref}" data-ref="${ref}" aria-label="Ayah ${ref}">
+    <div class="verse-head"><a class="verse-id" href="${urlFor(ref)}" aria-label="Read ayah ${ref} in its surah">${ref}</a><div class="verse-actions">
+    <button class="icon-button" data-pin="${ref}" aria-pressed="${isPin}" aria-label="Set reading pin at ${ref}" title="Pin reading place">${icon('pin')}</button>
+    <button class="icon-button" data-save="${ref}" aria-pressed="${isSaved}" aria-label="${isSaved?'Remove saved':'Save'} ayah ${ref}" title="${isSaved?'Remove saved ayah':'Save ayah'}">${icon('saved')}</button></div></div>
+    <p class="arabic" lang="ar" dir="rtl">${esc(row.ar)}</p>
+    ${language==='both'||language==='en'?`<div class="translation"><small>English · Pickthall</small><p lang="en">${esc(row.en)}</p></div>`:''}
+    ${language==='both'||language==='ur'?`<div class="translation urdu"><small>Urdu · Junagarhi</small><p lang="ur" dir="rtl">${esc(row.ur)}</p></div>`:''}
+    ${chips.length?`<div class="chips">${chips.map(t=>`<a href="#topics?item=${t.id}">${esc(t.name)}</a>`).join('')}</div>`:''}</article>`;
+}
+function reader(params) {
+  const requested = parseRef(params.get('ayah')||'',db.ar);
+  const mode = params.has('juz')?'juz':'surah';
+  const group = mode==='juz'?index.byJuz:index.bySurah;
+  const number = Number(params.get(mode)) || (requested?index.byRef.get(requested)[mode==='juz'?'juz':'s']:1);
+  const id=Number.isInteger(number)&&group[number]?number:1;
+  state.rows=group[id];state.id=id;state.mode=mode;
+  const c=meta.chapters[state.rows[0].s-1], isSurah=mode==='surah', label=isSurah?'Surah':'Juz';
+  state.target=requested && state.rows.some(r=>r.ref===requested)?requested:'';
+  const name=isSurah?c.transliteration:'Juz '+id;
+  const end=state.rows[state.rows.length-1];
+  return `<div class="reader-nav"><a href="#index">${icon('back')} Quran index</a><a href="#find">${icon('find')} Find</a></div>
+    <header class="chapter-head"><div class="eyebrow">${label} ${String(id).padStart(2,'0')}${isSurah?' · '+esc(c.type):''}</div>
+      <h1>${esc(name)}</h1><p>${isSurah?esc(c.translation):'From '+state.rows[0].ref+' to '+end.ref} · ${state.rows.length} ayat</p>
+      ${isSurah?`<div class="chapter-ar" lang="ar" dir="rtl">${esc(c.name)}</div>`:''}</header>
+    <div class="reader-tools"><details id="reader-settings"><summary>${icon('settings')} Reading settings</summary>${readingSettings()}</details>
+    <details id="reader-jump"><summary>${icon('book')} Go to ayah</summary><form id="jump"><label>${isSurah?'Ayah number':'Surah:ayah in this juz'}<input id="ayah" ${isSurah?'inputmode="numeric"':''} autocomplete="off" required placeholder="${isSurah?'1–'+state.rows.length:'e.g. '+state.rows[0].ref}"></label><button class="solid">Go</button></form></details></div>
+    <div class="verses">${state.rows.map(verse).join('')}</div><div class="stepper">
+    ${id>1?`<a href="#reader?${mode}=${id-1}">${icon('back')} Previous ${mode}</a>`:''}
+    ${id<group.length-1?`<a href="#reader?${mode}=${id+1}">Next ${mode} ${icon('arrow')}</a>`:''}</div>`;
+}
+function studyView(view, params) {
+  if (view==='study') return title('Connected study','Follow a name, theme or event back to its Quranic passages.')+studyLinks()+'<a class="text-link" href="#sources">Sources &amp; research method '+icon('arrow')+'</a>';
+  const trackId=Object.prototype.hasOwnProperty.call(tracks,params.get('path'))?params.get('path'):'origins';
+  const path=tracks[trackId];
+  const items=view==='prophets'?prophets:view==='topics'?topics:view==='timeline'?path.events:[];
+  const item=items.find(x=>x.id===params.get('item'));
+  const base='#'+view+(view==='timeline'?'?path='+trackId:'');
+  if (item) {
+    const refs=expandReferences(item.refs,db.ar);
+    return `<a class="back" href="${base}">${icon('back')} ${studyItems.find(x=>x[0]===view)[1]}</a>`+
+      title(item.title||item.name,item.description||'Selected passages from the Quran.')+
+      `<p class="source-refs">${item.refs.map(esc).join(' · ')}</p>
+      ${(item.hadith||[]).map(h=>`<aside class="note"><strong>Related hadith</strong><p><a href="${esc(h.url)}" target="_blank" rel="noopener">${esc(h.label)}</a> · ${esc(h.note)}</p></aside>`).join('')}
+      <details class="inline-settings"><summary>${icon('settings')} Reading settings</summary>${readingSettings()}</details><div class="verses">${refs.map(ref=>verse(index.byRef.get(ref))).join('')}</div>`;
+  }
+  const back='<a class="back" href="#study">'+icon('back')+' Connected study</a>';
+  if (view==='revelation') {
+    const period=['meccan','medinan'].includes(params.get('period'))?params.get('period'):'all';
+    return back+title('Revelation context','Traditional surah-level classifications. Individual passages can belong to a different period, and scholarly classifications can differ.')+
+      '<div class="segment">'+['all','meccan','medinan'].map(p=>`<a href="#revelation?period=${p}" ${p===period?'aria-current="true"':''}>${p[0].toUpperCase()+p.slice(1)}</a>`).join('')+'</div>'+
+      meta.chapters.filter(c=>period==='all'||c.type===period).map(chapterRow).join('');
+  }
+  const headings={prophets:['Prophetic narratives','Selected passages for 25 prophets. The directory is not a chronology. Dhul-Kifl is included in the commonly taught list; scholars discuss his identity and status.'],topics:['Themes & topics','30 editorial starting points. Categories overlap, and the index covers selected ayat.'],timeline:['Research timelines','Follow the passages in a study path. Dates are left open where the sources do not establish them.']};
+  const tabs=view==='timeline'?'<div class="path-tabs">'+Object.entries(tracks).map(([key,t])=>`<a href="#timeline?path=${key}" ${key===trackId?'aria-current="true"':''}>${esc(t.name)}</a>`).join('')+'</div>'+titleSmall(path.name,path.description):'';
+  return back+title(...headings[view])+tabs+'<div class="study-list">'+items.map(x=>`<a href="${base}${base.includes('?')?'&':'?'}item=${x.id}"><span><strong>${esc(x.title||x.name)}</strong><small>${esc(x.description || (x.alias!==x.name?x.alias+' · ':'')+x.refs.length+' linked passages')}</small></span>${x.ar?`<span class="row-ar" lang="ar" dir="rtl">${esc(x.ar)}</span>`:icon('chevron')}</a>`).join('')+'</div>';
+}
+function titleSmall(heading, description) {return '<h2>'+esc(heading)+'</h2><p class="muted">'+esc(description)+'</p>';}
+function savedView() {
+  const pin=readingPin?`<a href="${urlFor(readingPin)}" class="pinline">${icon('pin')} Reading pin · ${readingPin}${icon('arrow')}</a>`:'';
+  return title('Saved ayat','Your collection on this device.')+pin+
+    (saved.size?`<details class="inline-settings"><summary>${icon('settings')} Reading settings</summary>${readingSettings()}</details><div class="verses">${[...saved].map(ref=>verse(index.byRef.get(ref))).join('')}</div>`:
+    empty('Keep a passage here','Tap the bookmark beside an ayah to add it to your collection.')+'<a class="text-link" href="#index">Open the Quran index '+icon('arrow')+'</a>');
+}
+function sourceView() {
+  const links=[
+    ['Arabic Quran','Tanzil Uthmani 1.1. The Arabic is bundled verbatim. All 6,236 numbered ayat are checked against the project’s locked reference.','Tanzil text and attribution','https://tanzil.net/docs/text_license'],
+    ['English interpretation','Marmaduke Pickthall, The Meaning of the Glorious Koran (1930). Translations present the meanings of the Arabic text.','Dataset provenance','sources.json'],
+    ['Urdu interpretation','Muhammad Junagarhi, distributed by QuranEnc.com, version 1.1.3.','QuranEnc edition','https://quranenc.com/en/browse/urdu_junagarhi'],
+    ['Arabic typography','Amiri Quran is bundled with the app for offline reading. Surah and juz metadata comes from Tanzil.','Font licence','AMIRI-OFL.txt'],
+    ['Connected study','Muhammad Usman Buttar began this research project in 2015. Its prophetic narratives, timelines and themes form a selective editorial index. Some ayat appear under several themes. Each entry links to its source passages.','Dataset licence','DATA-LICENSE.txt']
+  ];
+  return title('Sources & method')+links.map(([h,body,label,href])=>`<section class="source-block"><h2>${h}</h2><p>${body}</p><a href="${href}" target="_blank" rel="noopener">${label} ↗</a></section>`).join('')+
+    '<a class="text-link" href="TANZIL-LICENSE.txt" target="_blank">Tanzil attribution notice ↗</a>';
+}
+function setRecent(ref) {
+  if (!ref || (recent?.ref===ref && recent?.mode===state.mode)) return;
+  recent={ref,mode:state.mode}; write('recent',recent,true);
+}
+function topVerse() {
+  const rows=document.querySelectorAll('.verse[data-ref]');
+  let lo=0, hi=rows.length-1;
+  if (rows.length && window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-2) return rows[rows.length-1].dataset.ref;
+  const line=Math.min(window.innerHeight*0.33,240);
+  while(lo<hi) {const mid=(lo+hi)>>1;if(rows[mid].getBoundingClientRect().bottom<=line)lo=mid+1;else hi=mid;}
+  return rows[lo]?.dataset.ref;
+}
+function rememberVisible() {if(state.readerReady && state.view==='reader') setRecent(topVerse());}
+function render() {
+  if (!index) return;
+  clearTimeout(scrollTimer); clearTimeout(searchTimer);
+  const serial=++navigationSerial;
+  const [raw='', query='']=location.hash.slice(1).split('?');
+  const routes=['home','reader','index','find','study','prophets','topics','timeline','revelation','saved','sources'];
+  const view=routes.includes(raw)?raw:'home', params=new URLSearchParams(query);
+  state.view=view;state.readerReady=false;state.target='';
+  const views={home,index:directory,find:finder,saved:savedView,sources:sourceView,reader:()=>reader(params)};
+  main.innerHTML=views[view]?views[view]():studyView(view,params);
+  nav(view==='reader'?'index':studyItems.some(i=>i[0]===view)?'study':view);
+  document.title=(main.querySelector('h1')?.textContent||'Home')+' · Pockett Quran';
+  window.scrollTo(0,0);
+  main.focus({preventScroll:true});
+  if(view==='reader'){
+    const target=state.target;
+    const settle=()=>{
+      if(serial!==navigationSerial)return;
+      if(target){const el=document.getElementById('v-'+target);el?.scrollIntoView({block:'start'});el?.classList.add('arrived');}
+      state.readerReady=true;setRecent(target||state.rows[0].ref);
+    };
+    Promise.resolve(document.fonts?.ready).then(()=>requestAnimationFrame(settle));
+  }
+}
+function redrawVerses() {
+  const active=document.activeElement;
+  for (const el of document.querySelectorAll('.verse')) el.outerHTML=verse(index.byRef.get(el.dataset.ref));
+  if(active?.isConnected) active.focus({preventScroll:true});
+}
+document.addEventListener('click', e=>{
+  const sameAnchor=e.target.closest('a[href^="#"]');
+  if(sameAnchor?.hash==='#main'){e.preventDefault();main.focus();return;}
+  if(sameAnchor && state.view==='reader') rememberVisible();
+  const b=e.target.closest('button');if(!b || !index)return;
+  if (b.hasAttribute('data-theme')) {theme=theme==='night'?'paper':'night';write('theme',theme);applyAppearance();return;}
+  if (b.dataset.directory) {
+    state.directory=b.dataset.directory;state.filter='';const filter=$('#filter');if(filter)filter.value='';
+    document.querySelectorAll('[data-directory]').forEach(el=>el.setAttribute('aria-pressed',el.dataset.directory===state.directory));
+    $('#directory-list').innerHTML=directoryRows(state.view==='home');return;
+  }
+  if (b.dataset.query) {$('#find-query').value=b.dataset.query;updateSearch(b.dataset.query);return;}
+  if (b.hasAttribute('data-more')) {state.limit+=24;const n=$('#matches').querySelectorAll('.match').length;$('#matches').innerHTML=matches();$('#matches').querySelectorAll('.match')[n]?.focus();return;}
+  if (b.dataset.save) {
+    const ref=b.dataset.save, next=new Set(saved);if(next.has(ref))next.delete(ref);else next.add(ref);
+    if(!write('saved',[...next]))return;saved=next;
+    if(state.view==='saved'){const article=b.closest('article');const neighbor=article.nextElementSibling||article.previousElementSibling;const nextRef=neighbor?.dataset.ref;main.innerHTML=savedView();if(nextRef)document.querySelector('[data-save="'+nextRef+'"]')?.focus();else main.focus();}
+    else {b.setAttribute('aria-pressed',saved.has(ref));b.setAttribute('aria-label',(saved.has(ref)?'Remove saved':'Save')+' ayah '+ref);b.title=saved.has(ref)?'Remove saved ayah':'Save ayah';}
+    toast(saved.has(ref)?'Ayah '+ref+' saved.':'Ayah '+ref+' removed from Saved.');return;
+  }
+  if(b.dataset.pin) {
+    if(!write('last-read',b.dataset.pin))return;readingPin=b.dataset.pin;
+    if(state.view==='reader')setRecent(readingPin);
+    document.querySelectorAll('[data-pin]').forEach(el=>el.setAttribute('aria-pressed',el.dataset.pin===readingPin));
+    toast('Reading pin set at '+readingPin+'.');return;
+  }
+  if(b.dataset.size) {
+    arabicSize=Math.max(28,Math.min(52,arabicSize+Number(b.dataset.size)));write('arabic-size',arabicSize);applyAppearance();
+    const zoom=b.closest('.zoom');zoom.querySelector('output').textContent=arabicSize+' px';
+    zoom.querySelector('[data-size="-2"]').disabled=arabicSize<=28;zoom.querySelector('[data-size="2"]').disabled=arabicSize>=52;
+  }
 });
-document.addEventListener('click',e=>{const a=e.target.closest('#mobile-menu a');if(a&&mobileMenu.open)mobileMenu.close()});
-document.addEventListener('change',e=>{if(e.target.classList.contains('language-select')){language=e.target.value;storage.set('language',language);if(detailActive)renderDetail();else render()}
-if(e.target.id==='surah'&&e.target.value)setSurah(+e.target.value);
-if(e.target.id==='juz'&&e.target.value){const j=+e.target.value,from=meta.indexes.juzs[j-1],to=meta.indexes.juzs[j];const key=(s,v)=>s*1000+v;readerSurah=0;readerJuz=j;readerRefs=flat.filter(x=>key(x.s,x.v)>=key(from.sura,from.aya)&&(!to||key(x.s,x.v)<key(to.sura,to.aya))).map(x=>x.ref);readerTitle='Juz '+j;page=0;renderReader()}
-if(e.target.id==='ayah'&&readerSurah&&e.target.value){const v=+e.target.value;if(v>=1&&v<=db.ar[readerSurah].length)openReaderAt(readerSurah+':'+v);else toast('Choose an ayah between 1 and '+db.ar[readerSurah].length+'.')}
-if(e.target.id==='period')revelationList(e.target.value)});
-window.addEventListener('hashchange',()=>{if(mobileMenu.open)mobileMenu.close();detailActive=false;page=0;render();window.scrollTo(0,0)});
-window.addEventListener('popstate',()=>{if(detailActive){detailActive=false;detailItem=null;detailRefs=[];render();window.scrollTo(0,0)}});
-function goBackInApp(){if(mobileMenu.open){mobileMenu.close();return}if(detailActive){history.back();return}if((location.hash||'#home')!=='#home'&&history.length>1){history.back();return}if((location.hash||'#home')!=='#home')navigate('home')}
-let edgeSwipe=null;document.addEventListener('touchstart',e=>{if(e.touches.length!==1){edgeSwipe=null;return}const t=e.touches[0];edgeSwipe=t.clientX<=28?{x:t.clientX,y:t.clientY,lastX:t.clientX,lastY:t.clientY}:null},{passive:true});
-document.addEventListener('touchmove',e=>{if(e.touches.length>1){e.preventDefault();edgeSwipe=null;return}if(!edgeSwipe||e.touches.length!==1)return;const t=e.touches[0],dx=t.clientX-edgeSwipe.x,dy=t.clientY-edgeSwipe.y;edgeSwipe.lastX=t.clientX;edgeSwipe.lastY=t.clientY;if(dx>8&&Math.abs(dx)>Math.abs(dy)*1.15)e.preventDefault()},{passive:false});
-document.addEventListener('touchend',()=>{if(!edgeSwipe)return;const dx=edgeSwipe.lastX-edgeSwipe.x,dy=edgeSwipe.lastY-edgeSwipe.y;edgeSwipe=null;if(dx>=72&&Math.abs(dy)<=70)goBackInApp()},{passive:true});
-['gesturestart','gesturechange','gestureend'].forEach(type=>document.addEventListener(type,e=>e.preventDefault(),{passive:false}));
-document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
-async function boot(){try{const [ar,en,ur,m]=await Promise.all(['arabic','english','urdu','metadata'].map(async n=>{const r=await fetch('./'+n+'.json');if(!r.ok)throw Error('Text file unavailable');return r.json()}));db={ar,en,ur};meta=m;topics.forEach(t=>t.expanded=refsExpand(t.refs));flat=Object.entries(ar).filter(([s])=>/^\d+$/.test(s)).flatMap(([s,vs])=>vs.map(v=>({s:+s,v:v.verse,ref:s+':'+v.verse})));render();if('serviceWorker'in navigator){navigator.serviceWorker.addEventListener('message',e=>{if(e.data==='OFFLINE_READY'){$('#connection').textContent='Ready for offline reading';toast('Quran text and app are ready for offline reading.')}if(e.data==='OFFLINE_FAILED')toast('Offline preparation did not finish. Keep this page online and reload to retry.')});navigator.serviceWorker.register('./sw.js').then(async r=>{await navigator.serviceWorker.ready;(r.active||navigator.serviceWorker.controller)?.postMessage('CHECK_OFFLINE')}).catch(()=>{$('#connection').textContent='Online reading'})}}catch(e){main.innerHTML='<div class="empty"><h2>The Quran text could not load.</h2><p>Please reconnect and reload. Your saved verses have not been changed.</p><button id="retry">Retry</button></div>';$('#retry').onclick=boot}}
+document.addEventListener('input',e=>{
+  if(e.target.id==='filter'){state.filter=e.target.value;$('#directory-list').innerHTML=directoryRows(false);}
+  if(e.target.id==='find-query'){const q=e.target.value;clearTimeout(searchTimer);searchTimer=setTimeout(()=>updateSearch(q),120);}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='language'){language=e.target.value;write('language',language);redrawVerses();}
+});
+document.addEventListener('submit', e=>{
+  if(e.target.id!=='jump')return;e.preventDefault();
+  const input=$('#ayah'),value=fold(input.value), ref=parseRef(state.mode==='surah'?state.id+':'+value:value,db.ar);
+  if(!state.rows.some(r=>r.ref===ref)){toast('Enter an ayah within this '+state.mode+'.');input.focus();return;}
+  navigate(urlFor(ref,state.mode));
+});
+// Native webviews may not provide a browser Back button. Leave pinch gestures to the OS.
+let edgeStart;
+document.addEventListener('touchstart',event=>{
+  const t=event.touches[0];
+  edgeStart=window.Capacitor?.isNativePlatform?.() && event.touches.length===1 && t.clientX<=24 ? {x:t.clientX,y:t.clientY}:null;
+},{passive:true});
+document.addEventListener('touchcancel',()=>{edgeStart=null;},{passive:true});
+document.addEventListener('touchend',event=>{
+  const t=event.changedTouches[0], start=edgeStart;edgeStart=null;
+  if(!start || !t || event.touches.length || t.clientX-start.x<80 || Math.abs(t.clientY-start.y)>55 || state.view==='home')return;
+  if(history.length>1)history.back();else navigate('#home');
+},{passive:true});
+window.addEventListener('hashchange',render);
+window.addEventListener('scroll',()=>{if(!state.readerReady)return;clearTimeout(scrollTimer);scrollTimer=setTimeout(rememberVisible,200);},{passive:true});
+window.addEventListener('pagehide',rememberVisible);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)rememberVisible();});
+async function boot(){
+  try {
+    const files=await Promise.all(['arabic','english','urdu','metadata'].map(async name=>{
+      const response=await fetch('./'+name+'.json');if(!response.ok)throw Error(name);return response.json();
+    }));
+    db={ar:files[0],en:files[1],ur:files[2]};meta=files[3];index=makeIndex(db,meta);related=new Map();
+    for(const t of topics)for(const ref of expandReferences(t.refs,db.ar)){if(!related.has(ref))related.set(ref,[]);related.get(ref).push(t);}
+    restore();render();
+    if('serviceWorker' in navigator && ['http:','https:'].includes(location.protocol) && !window.Capacitor?.isNativePlatform?.()){
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+  } catch(error) {
+    main.innerHTML=empty('The Quran text could not open','Please reopen the app or try again.')+'<button class="outline" id="retry">Try again</button>';
+    $('#retry').onclick=boot;
+  }
+}
 boot();

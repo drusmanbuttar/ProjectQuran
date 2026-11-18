@@ -24,7 +24,7 @@ This release is intentionally ad-free. It contains:
 
 In Play Console, answer **No** when asked whether the app contains ads. In Data safety, use the app's actual behavior: the app does not collect or share user data. Saved verses and preferences remain on the device. Android cloud backup is disabled. External links open only after a user selects them.
 
-Privacy policy URL: `https://drusmanbuttar.github.io/ProjectQuran/privacy.html`
+Privacy policy URL: `https://usmanbuttar.com/apps/pockett-quran/privacy.html`
 
 ## One-time upload-key setup
 

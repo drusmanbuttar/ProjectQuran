@@ -1,8 +1,25 @@
-const CACHE='pockett-quran-v16';
-const FILES=['./','./index.html','./style.css','./fonts/AmiriQuran.ttf','./AMIRI-OFL.txt','./app.js','./catalog.js','./arabic.json','./english.json','./urdu.json','./metadata.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./sources.json','./DATA-LICENSE.txt','./TANZIL-LICENSE.txt'];
-async function notify(message){for(const client of await self.clients.matchAll({includeUncontrolled:true}))client.postMessage(message)}
-async function prepare(){const cache=await caches.open(CACHE);try{await cache.addAll(FILES);await notify('OFFLINE_READY')}catch{await notify('OFFLINE_FAILED')}}
-self.addEventListener('install',event=>{event.waitUntil(prepare().then(()=>self.skipWaiting()))});
-self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('pockett-quran-')&&key!==CACHE)await caches.delete(key);await self.clients.claim()})())});
-self.addEventListener('message',event=>{if(event.data==='CHECK_OFFLINE')event.waitUntil((async()=>{const cache=await caches.open(CACHE);const ready=(await Promise.all(FILES.map(f=>cache.match(f)))).every(Boolean);if(ready)event.source.postMessage('OFFLINE_READY');else await prepare()})())});
-self.addEventListener('fetch',event=>{const url=new URL(event.request.url);if(event.request.method!=='GET'||url.origin!==self.location.origin)return;if(!FILES.some(f=>new URL(f,self.registration.scope).pathname===url.pathname))return;event.respondWith(caches.open(CACHE).then(async c=>(await c.match(event.request))||fetch(event.request))) });
+const CACHE='pockett-quran-reading-1.1.0-v1';
+const FILES=['./','./index.html','./style.css','./fonts/AmiriQuran.ttf','./AMIRI-OFL.txt','./app.js','./icons.js','./library.js','./illumination.png','./catalog.js','./arabic.json','./english.json','./urdu.json','./metadata.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./sources.json','./DATA-LICENSE.txt','./TANZIL-LICENSE.txt','./privacy.html','./support.html'];
+self.addEventListener('install', event=>{
+  event.waitUntil((async()=>{
+    const cache=await caches.open(CACHE);
+    await cache.addAll(FILES.map(file=>new Request(file,{cache:'reload'})));
+    await self.skipWaiting();
+  })());
+});
+self.addEventListener('activate',event=>{
+  event.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(key=>key.startsWith('pockett-quran-')&&key!==CACHE).map(key=>caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+  const url=new URL(event.request.url);
+  if(url.origin!==self.location.origin || !FILES.some(file=>new URL(file,self.registration.scope).pathname===url.pathname))return;
+  event.respondWith((async()=>{
+    const cache=await caches.open(CACHE);
+    return await cache.match(event.request,{ignoreSearch:true}) || fetch(event.request);
+  })());
+});
