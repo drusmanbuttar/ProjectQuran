@@ -9,7 +9,7 @@ permissions:
 jobs:
   screenshots:
     runs-on: macos-26
-    timeout-minutes: 25
+    timeout-minutes: 38
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,14 +33,20 @@ jobs:
               assert target, (label,[d['name'] for d in devices])
               print(label,target['udid'])
           PY
+          swiftc scripts/check-simulator-screen.swift -o "$RUNNER_TEMP/check-screen"
           while read -r label udid; do
             xcrun simctl boot "$udid" || xcrun simctl bootstatus "$udid" -b
             xcrun simctl bootstatus "$udid" -b
             xcrun simctl status_bar "$udid" override --time '9:41' --batteryState charged --batteryLevel 100
             xcrun simctl install "$udid" "$RUNNER_TEMP/reader-sim/Build/Products/Release-iphonesimulator/App.app"
             xcrun simctl launch "$udid" com.drusmanbuttar.projectquran
-            sleep 8
-            xcrun simctl io "$udid" screenshot "store-media/Pockett-Quran-$label.png"
+            output="store-media/Pockett-Quran-$label.png"
+            for attempt in {1..30}; do
+              sleep 4
+              xcrun simctl io "$udid" screenshot "$output"
+              if "$RUNNER_TEMP/check-screen" "$output"; then break; fi
+            done
+            "$RUNNER_TEMP/check-screen" "$output"
             xcrun simctl shutdown "$udid"
           done < "$RUNNER_TEMP/reader-devices.txt"
       - uses: actions/upload-artifact@v4
