@@ -9,11 +9,15 @@ def adb(*args):
     return subprocess.check_output(['adb',*args])
 
 def tree():
-    adb('shell','uiautomator','dump','/sdcard/reader-window.xml')
-    return ET.fromstring(adb('shell','cat','/sdcard/reader-window.xml'))
+    result=subprocess.run(['adb','exec-out','uiautomator','dump','/dev/tty'],capture_output=True,timeout=35)
+    data=result.stdout
+    start,end=data.find(b'<?xml'),data.rfind(b'</hierarchy>')
+    if start < 0 or end < start:
+        return ET.Element('hierarchy')
+    return ET.fromstring(data[start:end+len(b'</hierarchy>')])
 
 def find_control(text):
-    for _ in range(15):
+    for _ in range(25):
         for node in tree().iter('node'):
             labels=[node.get(key,'').strip() for key in ('text','content-desc')]
             if text in labels:
