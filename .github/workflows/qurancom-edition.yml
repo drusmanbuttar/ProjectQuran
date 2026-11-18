@@ -2,7 +2,7 @@ name: Compare Quran.com Hafs edition
 on:
   push:
     branches: ['release/reading-edition-1.1.0']
-    paths: ['scripts/fetch-qurancom-edition.py', '.github/workflows/qurancom-edition.yml']
+    paths: ['scripts/fetch-qurancom-edition.py', 'scripts/verify-published-reader.py', '.github/workflows/qurancom-edition.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 -u scripts/fetch-qurancom-edition.py
+      - run: python3 -u scripts/verify-published-reader.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
