@@ -36,7 +36,7 @@ export function makeIndex(db, meta) {
     for (const entry of db.ar[s]) {
       const v = entry.verse, ref = s + ':' + v;
       if (starts.has(ref)) byJuz[++juz] = [];
-      const row = {ref, s, v, juz, ar:entry.text, en:db.en[s][v-1].text, ur:db.ur[s][v-1].text};
+      const row = {ref, s, v, juz, audioNumber: verses.length + 1, ar:entry.text, en:db.en[s][v-1].text, ur:db.ur[s][v-1].text};
       verses.push(row); byRef.set(ref, row); byJuz[juz].push(row); bySurah[s].push(row);
     }
   }
