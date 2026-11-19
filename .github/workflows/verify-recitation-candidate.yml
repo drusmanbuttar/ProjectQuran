@@ -1,0 +1,19 @@
+name: Verify recitation candidate
+on:
+  pull_request:
+    paths: ['.release/candidate/1.1.1.txt']
+permissions:
+  actions: read
+jobs:
+  release-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Verify candidate workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/reading-candidate.yml/runs?head_sha=c209a21217f9dbfdd9e650b320d8331933d25a47" --jq '.workflow_runs[0].id')
+          test -n "$run"
+          echo "Release workflow https://github.com/$GITHUB_REPOSITORY/actions/runs/$run"
+          gh run watch "$run" --repo "$GITHUB_REPOSITORY" --exit-status --interval 30
