@@ -1,0 +1,16 @@
+name: Confirm build 24 upload
+on: pull_request
+permissions:
+  actions: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Observe upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run=$(gh api 'repos/drusmanbuttar/ProjectQuran/actions/workflows/ios-testflight.yml/runs?head_sha=ddfab9e27b7218f2b8beae63d2a44750d42453fd' --jq '.workflow_runs[0].id')
+          echo "Release run $run"
+          gh run watch "$run" -R drusmanbuttar/ProjectQuran --exit-status --interval 30
