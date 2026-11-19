@@ -119,11 +119,47 @@ function readingSettings() {
   return `<div class="settings"><label>Translation<select id="language">${[['both','English + Urdu'],['ar','Arabic only'],['en','English · Pickthall'],['ur','Urdu · Junagarhi']].map(([id,text])=>`<option value="${id}" ${language===id?'selected':''}>${text}</option>`).join('')}</select></label>
     <div><span class="field-label">Arabic text size</span><div class="zoom"><button data-size="-2" aria-label="Decrease Arabic size" ${arabicSize<=28?'disabled':''}>A−</button><output>${arabicSize} px</output><button data-size="2" aria-label="Increase Arabic size" ${arabicSize>=52?'disabled':''}>A+</button></div></div></div>`;
 }
+let recitation;
+function closeRecitation() {
+  if (!recitation) return;
+  const {audio, panel, button} = recitation;
+  recitation = null;
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  panel.remove();
+  button.setAttribute('aria-expanded', 'false');
+}
+function listen(button) {
+  const same = recitation?.button === button;
+  closeRecitation();
+  if (same) return;
+  const row = index.byRef.get(button.dataset.listen);
+  const panel = document.createElement('div');
+  const caption = document.createElement('p');
+  caption.textContent = 'Abdul Rahman Al-Sudais · AlQuran Cloud · ' + row.ref;
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.style.maxWidth = '100%';
+  audio.setAttribute('aria-label', 'Recitation of ayah ' + row.ref);
+  panel.append(caption, audio);
+  button.closest('.verse-head').after(panel);
+  button.setAttribute('aria-expanded', 'true');
+  recitation = {audio, panel, button};
+  audio.addEventListener('error', () => {
+    if (recitation?.audio === audio) caption.textContent = 'Audio unavailable for ' + row.ref + '. Check your connection and tap Listen again to reopen.';
+  });
+  audio.src = 'https://cdn.islamic.network/quran/audio/64/ar.abdurrahmaansudais/' + row.audioNumber + '.mp3';
+  audio.play().catch(() => {
+    if (recitation?.audio === audio && !audio.error) toast('Tap play in the audio controls to listen.');
+  });
+}
 function verse(row) {
   const {ref}=row, isSaved=saved.has(ref), isPin=readingPin===ref;
   const chips=related.get(ref)||[];
   return `<article class="verse" id="v-${ref}" data-ref="${ref}" aria-label="Ayah ${ref}">
     <div class="verse-head"><a class="verse-id" href="${urlFor(ref)}" aria-label="Read ayah ${ref} in its surah">${ref}</a><div class="verse-actions">
+    <button class="icon-button" data-listen="${ref}" aria-expanded="false" aria-label="Listen to ayah ${ref} with Al-Sudais" title="Listen with Al-Sudais">▶</button>
     <button class="icon-button" data-pin="${ref}" aria-pressed="${isPin}" aria-label="Set reading pin at ${ref}" title="Pin reading place">${icon('pin')}</button>
     <button class="icon-button" data-save="${ref}" aria-pressed="${isSaved}" aria-label="${isSaved?'Remove saved':'Save'} ayah ${ref}" title="${isSaved?'Remove saved ayah':'Save ayah'}">${icon('saved')}</button></div></div>
     <p class="arabic" lang="ar" dir="rtl">${esc(row.ar)}</p>
@@ -211,6 +247,7 @@ function topVerse() {
 function rememberVisible() {if(state.readerReady && state.view==='reader') setRecent(topVerse());}
 function render() {
   if (!index) return;
+  closeRecitation();
   clearTimeout(scrollTimer); clearTimeout(searchTimer);
   const serial=++navigationSerial;
   const [raw='', query='']=location.hash.slice(1).split('?');
@@ -244,6 +281,7 @@ document.addEventListener('click', e=>{
   if(sameAnchor?.hash==='#main'){e.preventDefault();main.focus();return;}
   if(sameAnchor && state.view==='reader') rememberVisible();
   const b=e.target.closest('button');if(!b || !index)return;
+  if (b.dataset.listen) {listen(b);return;}
   if (b.hasAttribute('data-theme')) {theme=theme==='night'?'paper':'night';write('theme',theme);applyAppearance();return;}
   if (b.dataset.directory) {
     state.directory=b.dataset.directory;state.filter='';const filter=$('#filter');if(filter)filter.value='';
@@ -255,7 +293,7 @@ document.addEventListener('click', e=>{
   if (b.dataset.save) {
     const ref=b.dataset.save, next=new Set(saved);if(next.has(ref))next.delete(ref);else next.add(ref);
     if(!write('saved',[...next]))return;saved=next;
-    if(state.view==='saved'){const article=b.closest('article');const neighbor=article.nextElementSibling||article.previousElementSibling;const nextRef=neighbor?.dataset.ref;main.innerHTML=savedView();if(nextRef)document.querySelector('[data-save="'+nextRef+'"]')?.focus();else main.focus();}
+    if(state.view==='saved'){closeRecitation();const article=b.closest('article');const neighbor=article.nextElementSibling||article.previousElementSibling;const nextRef=neighbor?.dataset.ref;main.innerHTML=savedView();if(nextRef)document.querySelector('[data-save="'+nextRef+'"]')?.focus();else main.focus();}
     else {b.setAttribute('aria-pressed',saved.has(ref));b.setAttribute('aria-label',(saved.has(ref)?'Remove saved':'Save')+' ayah '+ref);b.title=saved.has(ref)?'Remove saved ayah':'Save ayah';}
     toast(saved.has(ref)?'Ayah '+ref+' saved.':'Ayah '+ref+' removed from Saved.');return;
   }
@@ -298,7 +336,7 @@ document.addEventListener('touchend',event=>{
 },{passive:true});
 window.addEventListener('hashchange',render);
 window.addEventListener('scroll',()=>{if(!state.readerReady)return;clearTimeout(scrollTimer);scrollTimer=setTimeout(rememberVisible,200);},{passive:true});
-window.addEventListener('pagehide',rememberVisible);
+window.addEventListener('pagehide',()=>{rememberVisible();closeRecitation();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)rememberVisible();});
 async function boot(){
   try {
