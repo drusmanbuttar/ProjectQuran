@@ -1,4 +1,4 @@
-const CACHE='pockett-quran-reading-1.1.0-qpc-v1';
+const CACHE='pockett-quran-reading-1.1.0-qpc-audio-v1';
 const FILES=['./','./index.html','./style.css','./fonts/AmiriQuran.ttf','./fonts/UthmanicHafs1Ver18.woff2','./QPC-NOTICE.txt','./QPC-FONT-LICENSE.txt','./AMIRI-OFL.txt','./app.js','./icons.js','./library.js','./illumination.png','./catalog.js','./arabic.json','./english.json','./urdu.json','./metadata.json','./manifest.webmanifest','./icon.svg','./icon-192.png','./icon-512.png','./sources.json','./DATA-LICENSE.txt','./TANZIL-LICENSE.txt','./privacy.html','./support.html'];
 self.addEventListener('install', event=>{
   event.waitUntil((async()=>{
