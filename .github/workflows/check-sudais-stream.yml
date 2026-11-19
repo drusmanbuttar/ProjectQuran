@@ -1,0 +1,25 @@
+name: Check Al-Sudais streams
+on:
+  pull_request:
+    paths: ['dist/app.js', 'dist/library.js', '.github/workflows/check-sudais-stream.yml']
+permissions: {}
+jobs:
+  check-stream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check recording availability and verse mapping
+        run: |
+          python3 - <<'PY'
+          import json
+          from urllib.request import Request, urlopen
+          for ref, number in [('1:1', 1), ('2:38', 45), ('114:6', 6236)]:
+              edition = 'ar.abdurrahmaansudais'
+              with urlopen('https://api.alquran.cloud/v1/ayah/' + ref + '/' + edition, timeout=20) as response:
+                  data = json.load(response)['data']
+              assert data['number'] == number and data['edition']['identifier'] == edition
+              url = f'https://cdn.islamic.network/quran/audio/64/{edition}/{number}.mp3'
+              with urlopen(Request(url, headers={'Range':'bytes=0-1023'}), timeout=20) as response:
+                  sample = response.read(1024)
+                  assert response.headers.get_content_type().startswith('audio/') and len(sample) == 1024
+              print(ref, number, 'audio available')
+          PY
