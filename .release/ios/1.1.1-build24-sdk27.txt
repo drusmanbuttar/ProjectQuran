@@ -1,0 +1,1 @@
+Replace build 23 with build 24 compiled against iOS 27. Keep the existing deployment target.
