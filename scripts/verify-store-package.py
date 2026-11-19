@@ -13,6 +13,9 @@ with ZipFile(package) as archive:
         assert len(plists) == 1, 'Expected one iOS application'
         info = plistlib.loads(archive.read(plists[0]))
         assert info['CFBundleIdentifier'] == 'com.drusmanbuttar.projectquran'
+        sdk = info['DTSDKName']
+        assert sdk.startswith('iphoneos') and int(sdk[8:].split('.')[0]) >= 27, sdk
+        print(f"Verified signed iOS SDK: {sdk}, build {info['CFBundleVersion']}")
         prefix = plists[0].rsplit('/', 1)[0] + '/public/'
         if os.getenv('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
