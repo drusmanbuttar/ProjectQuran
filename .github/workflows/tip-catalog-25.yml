@@ -79,6 +79,15 @@ jobs:
               end
             end
           end
+          builds = api.call('v1/builds',{'filter[app]'=>'6813873757','filter[version]'=>'25','include'=>'preReleaseVersion'})
+          vs = builds.fetch('included',[]).select { |v| v.dig('attributes','version')=='1.1.2' && v.dig('attributes','platform')=='IOS' }.map { |v| v['id'] }
+          exact = builds.fetch('data').select { |v| vs.include?(v.dig('relationships','preReleaseVersion','data','id')) }
+          abort 'Expected exactly one build' unless exact.one?
+          bid = exact.first.fetch('id')
+          feedback = api.call('v1/apps/6813873757/betaFeedbackScreenshotSubmissions',{'filter[build]'=>bid,'fields[betaFeedbackScreenshotSubmissions]'=>'createdDate','limit'=>'1'})
+          puts "Catalog feedback count=#{feedback.dig('meta','paging','total') || feedback.fetch('data',[]).length} newest=#{feedback.dig('data',0,'attributes','createdDate')}" if feedback.key?('data')
+          version = api.call('v1/apps/6813873757/appStoreVersions',{'filter[versionString]'=>'1.1.2','filter[platform]'=>'IOS','include'=>'build'}).fetch('data').first
+          puts "Catalog release state=#{version.dig('attributes','appStoreState')} release=#{version.dig('attributes','releaseType')} exact_build=#{version.dig('relationships','build','data','id')==bid}"
       - name: Record run link
         if: always()
         env:
