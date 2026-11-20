@@ -1,0 +1,1 @@
+Test Pockett Quran 1.1.2 (28) with a single native startup path and compatible support controls.

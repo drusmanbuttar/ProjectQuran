@@ -7,8 +7,29 @@ document.body.insertAdjacentHTML('beforeend', `<dialog id="tip-dialog" aria-labe
     <p role="status" data-tip-status></p>
   </dialog>`);
 const tipDialog = document.getElementById('tip-dialog');
+const hasNativeDialog = typeof tipDialog.showModal === 'function';
+if (!hasNativeDialog) {
+  // Older iOS WebViews can display the same form as an inline disclosure.
+  openTip.parentElement.after(tipDialog);
+  tipDialog.hidden = true;
+  openTip.removeAttribute('aria-haspopup');
+  openTip.setAttribute('aria-controls', tipDialog.id);
+  openTip.setAttribute('aria-expanded', 'false');
+  tipDialog.querySelector('form').addEventListener('submit', event => {
+    event.preventDefault();
+    tipDialog.hidden = true;
+    openTip.setAttribute('aria-expanded', 'false');
+    openTip.focus();
+  });
+}
 openTip.addEventListener('click', async () => {
-  tipDialog.showModal();
+  if (hasNativeDialog) {
+    tipDialog.showModal();
+  } else {
+    tipDialog.hidden = false;
+    openTip.setAttribute('aria-expanded', 'true');
+    tipDialog.querySelector('form button').focus();
+  }
   const button = tipDialog.querySelector('[data-tip-buy]');
   const status = tipDialog.querySelector('[data-tip-status]');
   if (!window.Capacitor?.isPluginAvailable?.('QuranTip')) {
