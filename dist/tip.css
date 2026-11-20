@@ -1,0 +1,8 @@
+.support-row{display:flex;align-items:center;justify-content:center;width:100%;text-align:center}
+.support-link{min-height:44px;padding:6px 12px;border:0;background:transparent;color:var(--green,currentColor);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#tip-dialog{width:min(90vw,28rem);padding:24px;color:var(--ink,CanvasText);background:var(--paper,Canvas);border:1px solid var(--rule,GrayText);border-radius:14px}
+#tip-dialog::backdrop{background:rgb(0 0 0 / 45%)}
+#tip-dialog form{float:right;margin-left:8px}
+#tip-dialog h2{margin-top:0}
+#tip-dialog p{clear:both}
+#tip-dialog [hidden]{display:none}
