@@ -1,0 +1,59 @@
+name: Diagnose Pockett Quran beta install failures
+on:
+  push:
+    branches: [release/attach-build-25]
+    paths: [.github/workflows/testflight-install-report.yml]
+permissions:
+  statuses: write
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect build availability and crash feedback
+        env:
+          KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          KID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISS: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        shell: ruby {0}
+        run: |
+          require 'openssl'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          def enc(bytes)
+            Base64.urlsafe_encode64(bytes, padding: false)
+          end
+          now = Time.now.to_i
+          claims = {iss: ENV.fetch('ISS'), iat: now - 5, exp: now + 300, aud: 'appstoreconnect-v1'}
+          msg = enc({alg:'ES256', kid:ENV.fetch('KID'), typ:'JWT'}.to_json) + '.' + enc(claims.to_json)
+          key = OpenSSL::PKey.read(ENV.fetch('KEY'))
+          sig = OpenSSL::ASN1.decode(key.sign('SHA256', msg)).value.map { |i| i.value.to_s(2).rjust(32, "\0") }.join
+          token = msg + '.' + enc(sig)
+          api = lambda do |path, query = {}|
+            uri = URI("https://api.appstoreconnect.apple.com/" + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            req = Net::HTTP::Get.new(uri)
+            req['Authorization'] = 'Bearer ' + token
+            res = Net::HTTP.start(uri.host, uri.port, use_ssl:true) { |http| http.request(req) }
+            unless res.is_a?(Net::HTTPSuccess)
+              puts "Catalog #{path.split('/').last} HTTP #{res.code}"
+              next {}
+            end
+            JSON.parse(res.body)
+          end
+          app = '6813873757'
+          result = api.call('v1/builds', {'filter[app]'=>app,'filter[version]'=>'25,26,27','include'=>'preReleaseVersion'})
+          ios = result.fetch('included').select { |v| v.dig('attributes','platform')=='IOS' && v.dig('attributes','version')=='1.1.2' }.map { |v| v['id'] }
+          result.fetch('data').select { |v| ios.include?(v.dig('relationships','preReleaseVersion','data','id')) }.each do |v|
+            id = v.fetch('id')
+            a = v.fetch('attributes')
+            detail = api.call("v1/builds/#{id}/buildBetaDetail").dig('data','attributes') || {}
+            puts "Report build=#{a['version']} valid=#{a['processingState']} expired=#{a['expired']} minOS=#{a['minOsVersion']} internal=#{detail['internalBuildState']}"
+            crash = api.call("v1/apps/#{app}/betaFeedbackCrashSubmissions",{'filter[build]'=>id,'limit'=>'1'})
+            puts "Report build=#{a['version']} crash_feedback=#{crash.dig('meta','paging','total')}" if crash.key?('data')
+            metric = api.call("v1/builds/#{id}/metrics/betaBuildUsages")
+            if metric.key?('data')
+              puts "Report build=#{a['version']} metrics="+JSON.generate(metric['data'].map { |m| m['dataPoints'] || m.dig('attributes','dataPoints') }).slice(0,1800)
+            end
+          end
