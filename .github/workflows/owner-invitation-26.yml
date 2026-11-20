@@ -1,0 +1,102 @@
+name: Refresh Pockett Quran owner invitation for build 26
+on:
+  push:
+    branches: [release/attach-build-25]
+    paths: [.github/workflows/owner-invitation-26.yml]
+permissions:
+  statuses: write
+jobs:
+  attach:
+    if: github.event.head_commit.message == 'Refresh the verified owner invitation for Pockett Quran 1.1.2 (26)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check and configure owner-only TestFlight access
+        env:
+          KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          KID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISS: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        shell: ruby {0}
+        run: |
+          require 'openssl'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          def enc(bytes)
+            Base64.urlsafe_encode64(bytes, padding: false)
+          end
+          now = Time.now.to_i
+          claims = {iss: ENV.fetch('ISS'), iat: now - 5, exp: now + 300, aud: 'appstoreconnect-v1'}
+          msg = enc({alg:'ES256', kid:ENV.fetch('KID'), typ:'JWT'}.to_json) + '.' + enc(claims.to_json)
+          key = OpenSSL::PKey.read(ENV.fetch('KEY'))
+          sig = OpenSSL::ASN1.decode(key.sign('SHA256', msg)).value.map { |i| i.value.to_s(2).rjust(32, "\0") }.join
+          token = msg + '.' + enc(sig)
+          api = lambda do |path, query = {}, body = nil|
+            uri = URI("https://api.appstoreconnect.apple.com/v1/" + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            req = body ? Net::HTTP::Post.new(uri) : Net::HTTP::Get.new(uri)
+            req['Authorization'] = 'Bearer ' + token
+            if body
+              req['Content-Type'] = 'application/json'
+              req.body = body.to_json
+            end
+            res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
+            unless res.is_a?(Net::HTTPSuccess)
+              codes = JSON.parse(res.body).fetch("errors", []).map { |e| e["code"] } rescue []
+              detail = (JSON.parse(res.body).fetch('errors', []).map { |e| e['detail'] }.join(' ') rescue '').gsub(/[\w.+-]+@[\w.-]+/, '[redacted]').gsub(/[0-9a-f-]{32,}/i,'[id]')
+              abort("Apple detail: #{detail}") if res.code=='409'
+              abort("Apple API #{req.method} #{path.gsub(/[0-9a-f-]{32,}/i,'[id]')} returned #{res.code} #{codes.join(',')}")
+            end
+            res.body.to_s.empty? ? {} : JSON.parse(res.body)
+          end
+          app = '6813873757'
+          lookup = lambda do
+            builds = api.call('builds', {'filter[app]'=>app,'filter[version]'=>'26','include'=>'preReleaseVersion'})
+            releases = builds.fetch('included', []).select { |v| v['type']=='preReleaseVersions' && v.dig('attributes','version')=='1.1.2' && v.dig('attributes','platform')=='IOS' }.map { |v| v['id'] }
+            matches = builds.fetch('data').select { |b| releases.include?(b.dig('relationships','preReleaseVersion','data','id')) }
+            next nil if matches.empty?
+            abort('Expected exactly one matching iOS build') unless matches.one?
+            build = matches.first
+            state = build.dig('attributes','processingState')
+            puts "Apple processing state for 1.1.2 (26): #{state}"
+            next nil if state=='PROCESSING'
+            abort('Build unavailable') unless state=='VALID' && !build.dig('attributes','expired')
+            build
+          end
+          build = nil
+          12.times do
+            build = lookup.call
+            break if build
+            sleep 16
+          end
+          abort('Apple is still processing build 26') unless build
+          detail = api.call("builds/#{build['id']}/buildBetaDetail").fetch('data')
+          puts "Internal testing state: #{detail.dig('attributes','internalBuildState')}"
+          groups=api.call("apps/#{app}/betaGroups",{'limit'=>'200'}).fetch('data')
+          group=groups.select { |g| g.dig('attributes','name')=='Pockett Quran Owner Testing' && g.dig('attributes','isInternalGroup') }
+          abort('Expected one internal testing group') unless group.one?
+          path="betaGroups/#{group.first['id']}"
+          listed=-> { api.call(path+'/builds').fetch('data').any? { |v| v['id']==build['id'] } }
+          api.call(path+'/relationships/builds', {}, {data:[{type:'builds',id:build['id']}]}) unless listed.call
+          abort('Group build was not confirmed') unless listed.call
+          puts 'Verified build 26 in Pockett Quran Owner Testing'
+          owner_rows=api.call('users',{'filter[roles]'=>'ACCOUNT_HOLDER'}).fetch('data').select { |v| Array(v.dig('attributes','roles')).include?('ACCOUNT_HOLDER') }
+          abort('Ambiguous account holder') unless owner_rows.one?
+          owner=owner_rows.first.dig('attributes','username')
+          abort('Missing holder account') if owner.to_s.empty?
+          members=api.call(path+'/betaTesters',{'limit'=>'200'}).fetch('data')
+          targets=members.select { |m| m.dig('attributes','email').to_s.casecmp?(owner) }
+          abort('Could not identify a unique owner in the testing group') unless targets.one?
+          target=targets.first.fetch('id')
+          puts 'Invitation: verified the recipient is the account holder in the group containing build 26.'
+          api.call('betaTesterInvitations', {}, {data:{type:'betaTesterInvitations',relationships:{app:{data:{type:'apps',id:app}},betaTester:{data:{type:'betaTesters',id:target}}}}})
+          puts 'Invitation: Apple accepted the resend for Pockett Quran.'
+      - name: Record run link
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ job.status }}
+        run: |
+          state=failure
+          if [ "$RESULT" = success ]; then state=success; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context='Pockett Quran TestFlight access' -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --silent
