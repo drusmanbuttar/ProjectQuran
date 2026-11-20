@@ -1,0 +1,83 @@
+name: Check Pockett Quran tip catalog
+on:
+  push:
+    branches: [release/attach-build-25]
+    paths: [.github/workflows/tip-catalog-25.yml]
+permissions:
+  statuses: write
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read Apple catalog for the research tip
+        env:
+          KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          KID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISS: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        shell: ruby {0}
+        run: |
+          require 'openssl'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          def enc(bytes)
+            Base64.urlsafe_encode64(bytes, padding: false)
+          end
+          now = Time.now.to_i
+          claims = {iss: ENV.fetch('ISS'), iat: now - 5, exp: now + 300, aud: 'appstoreconnect-v1'}
+          msg = enc({alg:'ES256', kid:ENV.fetch('KID'), typ:'JWT'}.to_json) + '.' + enc(claims.to_json)
+          key = OpenSSL::PKey.read(ENV.fetch('KEY'))
+          sig = OpenSSL::ASN1.decode(key.sign('SHA256', msg)).value.map { |i| i.value.to_s(2).rjust(32, "\0") }.join
+          token = msg + '.' + enc(sig)
+          api = lambda do |path, query = {}|
+            uri = URI("https://api.appstoreconnect.apple.com/" + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            req = Net::HTTP::Get.new(uri)
+            req['Authorization'] = 'Bearer ' + token
+            res = Net::HTTP.start(uri.host, uri.port, use_ssl:true) { |http| http.request(req) }
+            unless res.is_a?(Net::HTTPSuccess)
+              puts "Catalog #{path.split('/').last} HTTP #{res.code}"
+              next {}
+            end
+            JSON.parse(res.body)
+          end
+          iap = '6837204462'
+          path = "v2/inAppPurchases/#{iap}"
+          item = api.call(path, {'include'=>'inAppPurchaseLocalizations,appStoreReviewScreenshot'})
+          attrs = item.dig('data','attributes') || {}
+          puts "Catalog product=#{attrs['productId']} type=#{attrs['inAppPurchaseType']} state=#{attrs['state']}"
+          (item['included'] || []).each do |i|
+            a = i['attributes']
+            puts "Catalog locale=#{a['locale']} name_present=#{!a['name'].to_s.empty?} description_present=#{!a['description'].to_s.empty?}" if i['type']=='inAppPurchaseLocalizations'
+          end
+          puts "Catalog screenshot=#{!!item.dig('data','relationships','appStoreReviewScreenshot','data')}"
+          schedule = api.call(path+'/iapPriceSchedule',{'include'=>'baseTerritory'})
+          sid = schedule.dig('data','id')
+          puts "Catalog base=#{schedule.dig('data','relationships','baseTerritory','data','id')}"
+          available = api.call(path+'/inAppPurchaseAvailability')
+          aid = available.dig('data','id')
+          if aid
+            areas = api.call("v1/inAppPurchaseAvailabilities/#{aid}/availableTerritories",{'limit'=>'200'}).fetch('data',[]).map { |x| x['id'] }
+            puts "Catalog territories=#{areas.length} USA=#{areas.include?('USA')} PAK=#{areas.include?('PAK')}"
+          end
+          if sid
+            %w[USA PAK].each do |territory|
+              %w[manualPrices automaticPrices].each do |kind|
+                data = api.call("v1/inAppPurchasePriceSchedules/#{sid}/#{kind}",{'filter[territory]'=>territory,'include'=>'inAppPurchasePricePoint,territory'})
+                prices = data.fetch('included',[]).select { |x| x['type']=='inAppPurchasePricePoints' }.to_h { |v| [v['id'],v.dig('attributes','customerPrice')] }
+                data.fetch('data',[]).each do |row|
+                  puts "Catalog #{territory} #{kind} price=#{prices[row.dig('relationships','inAppPurchasePricePoint','data','id')]} start=#{row.dig('attributes','startDate')} end=#{row.dig('attributes','endDate')}"
+                end
+              end
+            end
+          end
+      - name: Record run link
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ job.status }}
+        run: |
+          state=failure
+          if [ "$RESULT" = success ]; then state=success; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context='Pockett Quran tip catalog' -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --silent
