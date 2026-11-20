@@ -81,8 +81,9 @@ jobs:
           members = api.call(path + '/betaTesters', {'limit'=>'200'}).fetch('data')
           abort('Testing group contains other people') unless members.all? { |m| owner_testers.one? && m['id']==tester['id'] }
           build_ref = {type:'builds',id:build['id']}
-          listed = ->(kind,id) { api.call(kind=='builds' ? "builds/#{id}/relationships/betaGroups" : path + '/relationships/betaTesters').fetch('data').any? { |v| v['id']==(kind=='builds' ? group['id'] : id) } }
-          api.call(path + '/relationships/builds', {}, {data:[build_ref]}) unless listed.call('builds', build['id'])
+          listed = ->(kind,id) { api.call(path + '/' + kind).fetch('data').any? { |v| v['id']==id } }
+          api.call(path + '/relationships/builds', {}, {data:[build_ref]})
+          puts 'Apple accepted the request to add build 25 to Pockett Quran Owner Testing.'
           abort('Build association failed') unless listed.call('builds',build['id'])
           puts "Verified build 25 in #{group.dig('attributes','name')}"
           abort('Build staged; tester invitation needs App Store Connect') unless owner_testers.one?
