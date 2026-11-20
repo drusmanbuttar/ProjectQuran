@@ -115,19 +115,13 @@ function matches() {
 function updateSearch(q) {
   state.query=q;state.limit=24;state.hits=findPassages(q,db,index,meta);$('#matches').innerHTML=matches();
 }
-function supportTipSettings() {
-  if (!window.Capacitor?.isPluginAvailable?.('QuranTip')) return '';
-  return `<details data-tip-panel><summary>Support Pockett Quran</summary>
-    <p>Pockett Quran is free to read and listen to. An optional, one-time tip supports research, content review, and development. Every feature is free for everyone.</p>
-    <button type="button" data-tip-buy disabled>Give a one-time tip</button>
-    <p role="status" data-tip-status></p></details>`;
-}
-
-document.addEventListener('toggle', async event => {
-  const panel = event.target;
-  if (!panel.matches?.('[data-tip-panel]') || !panel.open) return;
-  const button = panel.querySelector('[data-tip-buy]');
-  const status = panel.querySelector('[data-tip-status]');
+const openTip = document.getElementById('open-tip');
+const tipDialog = document.getElementById('tip-dialog');
+openTip.hidden = !window.Capacitor?.isPluginAvailable?.('QuranTip');
+openTip.addEventListener('click', async () => {
+  tipDialog.showModal();
+  const button = tipDialog.querySelector('[data-tip-buy]');
+  const status = tipDialog.querySelector('[data-tip-status]');
   if (button.dataset.busy || button.dataset.loading) return;
   button.dataset.loading = 'true';
   button.disabled = true;
@@ -140,15 +134,15 @@ document.addEventListener('toggle', async event => {
     button.disabled = false;
   } catch (error) {
     status.textContent = error?.code === 'TIP_NOT_AVAILABLE'
-      ? 'The App Store has no tip available for this storefront. Reopen this section to try again.'
-      : 'Apple pricing is unavailable. Reopen this section to try again.';
+      ? 'The App Store has no tip available for this storefront. Close and reopen Support Pockett Quran to try again.'
+      : 'Apple pricing is unavailable. Close and reopen Support Pockett Quran to try again.';
     if (error?.code?.startsWith('STOREKIT:')) {
       status.textContent += ' (' + error.code.slice(9) + ')';
     }
   } finally {
     delete button.dataset.loading;
   }
-}, true);
+});
 
 document.addEventListener('click', async event => {
   const button = event.target.closest?.('[data-tip-buy]');
@@ -170,7 +164,7 @@ document.addEventListener('click', async event => {
 
 function readingSettings() {
   return `<div class="settings"><label>Translation<select id="language">${[['both','English + Urdu'],['ar','Arabic only'],['en','English · Pickthall'],['ur','Urdu · Junagarhi']].map(([id,text])=>`<option value="${id}" ${language===id?'selected':''}>${text}</option>`).join('')}</select></label>
-    <div><span class="field-label">Arabic text size</span><div class="zoom"><button data-size="-2" aria-label="Decrease Arabic size" ${arabicSize<=28?'disabled':''}>A−</button><output>${arabicSize} px</output><button data-size="2" aria-label="Increase Arabic size" ${arabicSize>=52?'disabled':''}>A+</button></div></div>${supportTipSettings()}</div>`;
+    <div><span class="field-label">Arabic text size</span><div class="zoom"><button data-size="-2" aria-label="Decrease Arabic size" ${arabicSize<=28?'disabled':''}>A−</button><output>${arabicSize} px</output><button data-size="2" aria-label="Increase Arabic size" ${arabicSize>=52?'disabled':''}>A+</button></div></div></div>`;
 }
 let recitation;
 function closeRecitation() {
