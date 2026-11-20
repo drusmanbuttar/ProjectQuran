@@ -128,14 +128,25 @@ document.addEventListener('toggle', async event => {
   if (!panel.matches?.('[data-tip-panel]') || !panel.open) return;
   const button = panel.querySelector('[data-tip-buy]');
   const status = panel.querySelector('[data-tip-status]');
-  if (button.dataset.busy) return;
+  if (button.dataset.busy || button.dataset.loading) return;
+  button.dataset.loading = 'true';
   button.disabled = true;
+  button.textContent = 'Give a one-time tip';
+  status.textContent = 'Checking the App Store price…';
   try {
     const offer = await window.Capacitor.Plugins.QuranTip.price();
     button.textContent = 'Give a one-time tip · ' + offer.price;
+    status.textContent = '';
     button.disabled = false;
-  } catch {
-    status.textContent = 'Apple pricing is unavailable. Reopen this section to try again.';
+  } catch (error) {
+    status.textContent = error?.code === 'TIP_NOT_AVAILABLE'
+      ? 'The App Store has no tip available for this storefront. Reopen this section to try again.'
+      : 'Apple pricing is unavailable. Reopen this section to try again.';
+    if (error?.code?.startsWith('STOREKIT:')) {
+      status.textContent += ' (' + error.code.slice(9) + ')';
+    }
+  } finally {
+    delete button.dataset.loading;
   }
 }, true);
 
