@@ -49,15 +49,15 @@ jobs:
             assigned = api.call("v1/betaGroups/#{g['id']}/builds",{'limit'=>'200'}).fetch('data')
             puts "Report owner_group=#{g.dig('attributes','name')=='Pockett Quran Owner Testing'} members=#{members.size} builds=#{assigned.map { |b| b.dig('attributes','version') }.join(',')}"
           end
-          result = api.call('v1/builds', {'filter[app]'=>app,'filter[version]'=>'25,26,27','include'=>'preReleaseVersion'})
+          result = api.call('v1/builds', {'filter[app]'=>app,'filter[version]'=>'25,26,27,28','include'=>'preReleaseVersion'})
           ios = result.fetch('included').select { |v| v.dig('attributes','platform')=='IOS' && v.dig('attributes','version')=='1.1.2' }.map { |v| v['id'] }
           result.fetch('data').select { |v| ios.include?(v.dig('relationships','preReleaseVersion','data','id')) }.each do |v|
             id = v.fetch('id')
             a = v.fetch('attributes')
             detail = api.call("v1/builds/#{id}/buildBetaDetail").dig('data','attributes') || {}
             puts "Report build=#{a['version']} valid=#{a['processingState']} expired=#{a['expired']} minOS=#{a['minOsVersion']} internal=#{detail['internalBuildState']}"
-            groups = api.call("v1/builds/#{id}/betaGroups",{'limit'=>'200'}).fetch('data',[])
-            puts "Report build=#{a['version']} internal_groups=#{groups.select { |g| g.dig('attributes','isInternalGroup') }.size} owner_group=#{groups.any? { |g| g.dig('attributes','name')=='Pockett Quran Owner Testing' }}"
+            shot = api.call("v1/apps/#{app}/betaFeedbackScreenshotSubmissions",{'filter[build]'=>id,'limit'=>'1'})
+            puts "Report build=#{a['version']} screenshots=#{shot.dig('meta','paging','total')}" if shot.key?('data')
             crash = api.call("v1/apps/#{app}/betaFeedbackCrashSubmissions",{'filter[build]'=>id,'limit'=>'1'})
             puts "Report build=#{a['version']} crash_feedback=#{crash.dig('meta','paging','total')}" if crash.key?('data')
             metric = api.call("v1/builds/#{id}/metrics/betaBuildUsages")
