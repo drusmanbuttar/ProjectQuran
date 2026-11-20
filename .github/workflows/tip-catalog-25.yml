@@ -44,6 +44,13 @@ jobs:
           end
           iap = '6837204462'
           path = "v2/inAppPurchases/#{iap}"
+          app = api.call('v1/apps/6813873757').dig('data','attributes','bundleId')
+          puts "Catalog app bundle=#{app}"
+          related = api.call('v1/apps/6813873757/inAppPurchasesV2', {'limit'=>'200'}).fetch('data',[])
+          puts "Catalog app owns tip=#{related.any? { |p| p['id']==iap }}"
+          bundles = api.call('v1/bundleIds',{'filter[identifier]'=>app,'include'=>'bundleIdCapabilities'})
+          caps = bundles.fetch('included',[]).map { |v| v.dig('attributes','capabilityType') }
+          puts "Catalog IAP capability explicitly listed=#{caps.include?('IN_APP_PURCHASE')}" if bundles.dig('data',0)
           item = api.call(path, {'include'=>'inAppPurchaseLocalizations,appStoreReviewScreenshot'})
           attrs = item.dig('data','attributes') || {}
           puts "Catalog product=#{attrs['productId']} type=#{attrs['inAppPurchaseType']} state=#{attrs['state']}"
