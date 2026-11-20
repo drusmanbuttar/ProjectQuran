@@ -6,3 +6,5 @@
 #tip-dialog h2{margin-top:0}
 #tip-dialog p{clear:both}
 #tip-dialog [hidden]{display:none}
+
+#tip-dialog[hidden]{display:none}
