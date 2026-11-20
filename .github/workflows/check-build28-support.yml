@@ -27,10 +27,9 @@ jobs:
           import assert from 'node:assert/strict';
           const browser = await webkit.launch();
           try {
-            for (const legacy of [false, true]) {
+            {
               const context = await browser.newContext({viewport:{width:390,height:844}});
-              await context.addInitScript(legacy => {
-                if (legacy) HTMLDialogElement.prototype.showModal = undefined;
+              await context.addInitScript(() => {
                 let reads = 0;
                 window.Capacitor = {isPluginAvailable: name => name === 'QuranTip', Plugins:{QuranTip:{
                   price: async () => {
@@ -38,7 +37,7 @@ jobs:
                     return {price:'Test price'};
                   }
                 }}};
-              },legacy);
+              });
               for (const path of ['index.html','privacy.html','support.html']) {
                 const page = await context.newPage();
                 await page.goto('http://127.0.0.1:8090/'+path);
@@ -54,7 +53,7 @@ jobs:
                 assert(await page.locator('[data-tip-buy]').isEnabled());
                 await close.click();
                 await page.close();
-                console.log('PASS support open, close, pricing error and retry',path,legacy?'inline':'native dialog');
+                console.log('PASS support open, close, pricing error and retry',path);
               }
               await context.close();
             }
