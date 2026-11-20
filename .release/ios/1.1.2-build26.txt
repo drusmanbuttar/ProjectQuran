@@ -1,0 +1,1 @@
+TestFlight 1.1.2 (26): centered Support Pockett Quran header and StoreKit price diagnostics.
