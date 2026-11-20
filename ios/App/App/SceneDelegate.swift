@@ -62,16 +62,23 @@ final class QuranTip: CAPPlugin, CAPBridgedPlugin {
 
     deinit { updates?.cancel() }
 
+    private enum TipLookupError: Error { case missingConsumable }
+
     private func product() async throws -> Product {
         guard let tip = try await Product.products(for: [id]).first, tip.type == .consumable
-        else { throw StoreKitError.notAvailableInStorefront }
+        else { throw TipLookupError.missingConsumable }
         return tip
     }
 
     @objc func price(_ call: CAPPluginCall) {
         Task {
             do { call.resolve(["price": try await product().displayPrice]) }
-            catch { call.reject("Store unavailable") }
+            catch TipLookupError.missingConsumable {
+                call.reject("No matching consumable", "TIP_NOT_AVAILABLE")
+            } catch {
+                let underlying = error as NSError
+                call.reject("Store unavailable", "STOREKIT:\(underlying.domain) \(underlying.code)")
+            }
         }
     }
 
