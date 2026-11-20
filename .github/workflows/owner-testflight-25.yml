@@ -44,7 +44,7 @@ jobs:
               codes = JSON.parse(res.body).fetch("errors", []).map { |e| e["code"] } rescue []
               detail = (JSON.parse(res.body).fetch('errors', []).map { |e| e['detail'] }.join(' ') rescue '').gsub(/[\w.+-]+@[\w.-]+/, '[redacted]').gsub(/[0-9a-f-]{32,}/i,'[id]')
               abort("Apple detail: #{detail}") if res.code=='409'
-              abort("Apple API #{req.method} #{path.split('/').first} returned #{res.code} #{codes.join(',')}")
+              abort("Apple API #{req.method} #{path.gsub(/[0-9a-f-]{32,}/i,'[id]')} returned #{res.code} #{codes.join(',')}")
             end
             res.body.to_s.empty? ? {} : JSON.parse(res.body)
           end
@@ -87,7 +87,7 @@ jobs:
           abort('Testing group contains other people') unless members.all? { |m| m['id']==tester['id'] }
           tester_ref = {type:'betaTesters',id:tester['id']}
           build_ref = {type:'builds',id:build['id']}
-          listed = ->(kind,id) { api.call(path + '/' + kind, {'limit'=>'200'}).fetch('data').any? { |v| v['id']==id } }
+          listed = ->(kind,id) { api.call(kind=='builds' ? "builds/#{id}/relationships/betaGroups" : path + '/relationships/betaTesters').fetch('data').any? { |v| v['id']==(kind=='builds' ? group['id'] : id) } }
           api.call(path + '/relationships/builds', {}, {data:[build_ref]}) unless listed.call('builds', build['id'])
           abort('Build association failed') unless listed.call('builds',build['id'])
           puts "Verified build 25 in #{group.dig('attributes','name')}"
