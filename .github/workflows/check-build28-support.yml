@@ -1,0 +1,62 @@
+name: Exercise build 28 support controls in WebKit
+on:
+  push:
+    branches: [release/diagnose-ios-1.1.2-launch]
+    paths: [.github/workflows/check-build28-support.yml]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 636f74331d1440e745ed7f8e64732adeb88ac41b
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run reader and support interactions
+        run: |
+          set -eu
+          npm install --prefix "$RUNNER_TEMP/pq-ui" playwright@1.56.1
+          "$RUNNER_TEMP/pq-ui/node_modules/.bin/playwright" install --with-deps webkit
+          python3 -m http.server 8090 --bind 127.0.0.1 --directory dist > "$RUNNER_TEMP/reader-http.log" 2>&1 &
+          cd "$RUNNER_TEMP/pq-ui"
+          node --input-type=module <<'JS'
+          import {webkit} from 'playwright';
+          import assert from 'node:assert/strict';
+          const browser = await webkit.launch();
+          try {
+            for (const legacy of [false, true]) {
+              const context = await browser.newContext({viewport:{width:390,height:844}});
+              await context.addInitScript(legacy => {
+                if (legacy) HTMLDialogElement.prototype.showModal = undefined;
+                let reads = 0;
+                window.Capacitor = {isPluginAvailable: name => name === 'QuranTip', Plugins:{QuranTip:{
+                  price: async () => {
+                    if (++reads === 1) throw Object.assign(new Error(), {code:'TIP_NOT_AVAILABLE'});
+                    return {price:'Test price'};
+                  }
+                }}};
+              },legacy);
+              for (const path of ['index.html','privacy.html','support.html']) {
+                const page = await context.newPage();
+                await page.goto('http://127.0.0.1:8090/'+path);
+                const header = page.locator('header #open-tip');
+                await header.click();
+                await page.getByText(/no tip available for this storefront/).waitFor();
+                assert(await page.locator('[data-tip-buy]').isDisabled());
+                const close = page.getByRole('button',{name:'Close support dialog'});
+                await close.click();
+                await page.locator('#tip-dialog').waitFor({state:'hidden'});
+                await header.click();
+                await page.getByRole('button',{name:/Give a one-time tip.*Test price/}).waitFor();
+                assert(await page.locator('[data-tip-buy]').isEnabled());
+                await close.click();
+                await page.close();
+                console.log('PASS support open, close, pricing error and retry',path,legacy?'inline':'native dialog');
+              }
+              await context.close();
+            }
+          } finally {await browser.close();}
+          JS
