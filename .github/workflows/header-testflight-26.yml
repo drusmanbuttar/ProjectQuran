@@ -50,7 +50,17 @@ jobs:
           end
           app = '6813873757'
           lookup = lambda do
-
+            builds = api.call('builds', {'filter[app]'=>app,'filter[version]'=>'26','include'=>'preReleaseVersion'})
+            releases = builds.fetch('included', []).select { |v| v['type']=='preReleaseVersions' && v.dig('attributes','version')=='1.1.2' && v.dig('attributes','platform')=='IOS' }.map { |v| v['id'] }
+            matches = builds.fetch('data').select { |b| releases.include?(b.dig('relationships','preReleaseVersion','data','id')) }
+            next nil if matches.empty?
+            abort('Expected exactly one matching iOS build') unless matches.one?
+            build = matches.first
+            state = build.dig('attributes','processingState')
+            puts "Apple processing state for 1.1.2 (26): #{state}"
+            next nil if state=='PROCESSING'
+            abort('Build unavailable') unless state=='VALID' && !build.dig('attributes','expired')
+            build
           end
           build = nil
           12.times do
@@ -59,21 +69,6 @@ jobs:
             sleep 16
           end
           abort('Apple is still processing build 26') unless build
-          detail = (JSON.parse(res.body).fetch('errors', []).map { |e| e['detail'] }.join(' ') rescue '').gsub(/[\w.+-]+@[\w.-]+/, '[redacted]').gsub(/[0-9a-f-]{32,}/i,'[id]')
-              abort("Apple detail: #{detail}") if res.code=='409'
-              abort("Apple API #{req.method} #{path.gsub(/[0-9a-f-]{32,}/i,'[id]')} returned #{res.code} #{codes.join(',')}")
-            end
-            res.body.to_s.empty? ? {} : JSON.parse(res.body)
-          end
-          app = '6813873757'
-          builds = api.call('builds', {'filter[app]'=>app,'filter[version]'=>'26','include'=>'preReleaseVersion'})
-          releases = builds.fetch('included', []).select { |v| v['type']=='preReleaseVersions' && v.dig('attributes','version')=='1.1.2' && v.dig('attributes','platform')=='IOS' }.map { |v| v['id'] }
-          matches = builds.fetch('data').select { |b| releases.include?(b.dig('relationships','preReleaseVersion','data','id')) }
-          abort('Expected exactly one matching iOS build') unless matches.one?
-          build = matches.first
-          state = build.dig('attributes','processingState')
-          puts "Apple processing state for 1.1.2 (26): #{state}"
-          abort('Build unavailable') unless state=='VALID' && !build.dig('attributes','expired')
           detail = api.call("builds/#{build['id']}/buildBetaDetail").fetch('data')
           puts "Internal testing state: #{detail.dig('attributes','internalBuildState')}"
           groups=api.call("apps/#{app}/betaGroups",{'limit'=>'200'}).fetch('data')
