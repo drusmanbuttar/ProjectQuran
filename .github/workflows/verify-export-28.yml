@@ -1,0 +1,44 @@
+name: Audit exported build 28 signing and architecture
+on:
+  push:
+    branches: [release/diagnose-ios-1.1.2-launch]
+    paths: [.github/workflows/verify-export-28.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: macos-26
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: PockettQuran-iOS-1.1.2-build28
+          run-id: 44755482844
+          github-token: ${{ github.token }}
+          path: ipa
+      - name: Verify original distribution signature and embedded profile
+        run: |
+          set -eu
+          unzip -q ipa/*.ipa
+          app=$(find Payload -maxdepth 1 -name '*.app')
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -d --entitlements :- "$app" > signed.plist
+          security cms -D -i "$app/embedded.mobileprovision" > profile.plist
+          python3 - "$app" <<'PY'
+          import plistlib,sys,datetime,pathlib,subprocess
+          app=pathlib.Path(sys.argv[1])
+          read=lambda p: plistlib.loads(pathlib.Path(p).read_bytes())
+          info=read(app/'Info.plist')
+          profile=read('profile.plist')
+          signed=read('signed.plist')
+          bundle=info['CFBundleIdentifier']
+          assert (bundle,info['CFBundleVersion'],info['CFBundleShortVersionString'])==('com.drusmanbuttar.projectquran','28','1.1.2')
+          ent=profile['Entitlements']
+          assert signed['application-identifier']==ent['application-identifier']==profile['TeamIdentifier'][0]+'.'+bundle
+          assert not signed.get('get-task-allow') and not ent.get('get-task-allow')
+          assert ent.get('beta-reports-active') and 'ProvisionedDevices' not in profile and not profile.get('ProvisionsAllDevices')
+          assert profile['ExpirationDate']>datetime.datetime.utcnow()
+          arch=subprocess.check_output(['lipo','-archs',str(app/info['CFBundleExecutable'])],text=True).strip()
+          assert 'arm64' in arch.split() and 1 in info['UIDeviceFamily']
+          print('Verified production signature and profile. Architecture:',arch,'min OS:',info['MinimumOSVersion'],'device families:',info['UIDeviceFamily'],'required capabilities:',info.get('UIRequiredDeviceCapabilities'),'profile expiry:',profile['ExpirationDate'])
+          PY
