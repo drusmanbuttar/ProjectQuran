@@ -1,0 +1,1 @@
+Rebuild Pockett Quran 1.1.2 (27) for internal TestFlight installation testing.
