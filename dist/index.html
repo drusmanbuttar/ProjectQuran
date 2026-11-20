@@ -15,8 +15,16 @@
   <header class="masthead"><div class="mast-inner">
     <a class="brand" href="#home" aria-label="Pockett Quran home"><img class="brandmark" src="icon-192.png" width="36" height="36" alt="">Pockett <em>Quran</em></a>
     <nav class="desktop-nav" aria-label="Primary navigation"></nav>
+    <button type="button" class="support-link" id="open-tip" aria-haspopup="dialog" hidden>Support Pockett Quran</button>
     <button type="button" class="appearance icon-button" data-theme aria-label="Switch to night mode"></button>
   </div></header>
+  <dialog id="tip-dialog" aria-labelledby="tip-heading">
+    <form method="dialog"><button type="submit" class="outline" aria-label="Close support dialog">Close</button></form>
+    <h2 id="tip-heading">Support Pockett Quran</h2>
+    <p>Pockett Quran is free to read and listen to. An optional, one-time tip supports research, content review, and development. Every feature is free for everyone.</p>
+    <button type="button" class="solid" data-tip-buy disabled>Give a one-time tip</button>
+    <p role="status" data-tip-status></p>
+  </dialog>
   <main id="main" tabindex="-1"><p role="status">Opening the Quran…</p></main>
   <footer><p>Pockett Quran App - Muhammad Usman Buttar</p><div><a href="#sources">Sources &amp; method</a><a href="https://usmanbuttar.com/apps/pockett-quran/privacy.html">Privacy</a><a href="https://usmanbuttar.com/apps/pockett-quran/support.html">Support</a><a href="https://usmanbuttar.com">Developer website</a></div></footer>
   <nav class="mobile-nav" aria-label="Primary mobile navigation"></nav>
