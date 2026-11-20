@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 38
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: 636f74331d1440e745ed7f8e64732adeb88ac41b
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,6 +35,11 @@ jobs:
               assert target, (label,[d['name'] for d in devices])
               print(label,target['udid'])
           PY
+          app="$RUNNER_TEMP/reader-sim/Build/Products/Release-iphonesimulator/App.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Info.plist")" = 28
+          for page in index privacy support; do
+            grep -q 'id="open-tip"' "$app/public/$page.html"
+          done
           swiftc scripts/check-simulator-screen.swift -o "$RUNNER_TEMP/check-screen"
           while read -r label udid; do
             xcrun simctl boot "$udid" || xcrun simctl bootstatus "$udid" -b
@@ -56,6 +63,6 @@ jobs:
           done < "$RUNNER_TEMP/reader-devices.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: pockett-quran-native-launch
+          name: pockett-quran-build28-native-launch
           path: store-media/*.png
           if-no-files-found: error
