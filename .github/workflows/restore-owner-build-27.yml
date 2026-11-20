@@ -66,6 +66,19 @@ jobs:
           abort('Missing holder Apple Account') unless email.to_s.include?('@')
           testers = api.call('betaTesters', {'filter[email]'=>email, 'limit'=>'200'}).fetch('data')
           owner_testers = testers.select { |t| t.dig('attributes','email').to_s.casecmp?(email) }
+          if owner_testers.size > 1
+            scoped = owner_testers.map do |t|
+              linked = api.call("betaTesters/#{t['id']}/apps",{'limit'=>'200'}).fetch('data')
+              groups_for_tester = api.call("betaTesters/#{t['id']}/betaGroups",{'limit'=>'200'}).fetch('data')
+              internal = groups_for_tester.any? { |g| g.dig('attributes','isInternalGroup') }
+              same_app = linked.any? { |a| a['id']==app }
+              puts "Holder match: linked_app=#{same_app} internal=#{internal} invite_type=#{t.dig('attributes','inviteType')}"
+              [t, same_app, internal]
+            end
+            filters = [scoped.select { |_,a,i| a && i },scoped.select { |_,a,_| a },scoped.select { |_,_,i| i }]
+            singles = filters.find { |rows| rows.one? }
+            owner_testers = [singles.first.first] if singles
+          end
           tester = owner_testers.first
           groups = api.call("apps/#{app}/betaGroups", {'limit'=>'200'}).fetch('data')
           name = 'Pockett Quran Owner Testing'
