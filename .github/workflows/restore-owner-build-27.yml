@@ -86,9 +86,15 @@ jobs:
           puts 'Apple accepted the request to add build 27 to Pockett Quran Owner Testing.'
           abort('Build association failed') unless listed.call('builds',build['id'])
           puts "Verified build 27 in #{group.dig('attributes','name')}"
-          abort('Build staged; tester invitation needs App Store Connect') unless owner_testers.one?
+          abort('Multiple tester records matched the account holder') if owner_testers.length > 1
+          if owner_testers.empty?
+            attrs = {email:email,firstName:owners.first.dig('attributes','firstName'),lastName:owners.first.dig('attributes','lastName')}.compact
+            tester = api.call('betaTesters', {}, {data:{type:'betaTesters',attributes:attrs,relationships:{betaGroups:{data:[{type:'betaGroups',id:group.fetch('id')}]}}}}).fetch('data')
+            abort('Account mismatch') unless tester.dig('attributes','email').to_s.casecmp?(email)
+            puts 'Apple accepted owner tester registration for the internal group.'
+          end
           tester_ref = {type:'betaTesters',id:tester['id']}
-          api.call(path + '/relationships/betaTesters', {}, {data:[tester_ref]}) if members.empty?
+          api.call(path + '/relationships/betaTesters', {}, {data:[tester_ref]}) unless listed.call('betaTesters', tester['id'])
           abort('Group membership could not be verified') unless listed.call('betaTesters', tester['id']) && listed.call('builds',build['id'])
           puts 'Verified owner TestFlight group contains both the account holder and build 27.'
           puts "Final Apple state: #{api.call("builds/#{build['id']}/buildBetaDetail").dig('data','attributes','internalBuildState')}"
