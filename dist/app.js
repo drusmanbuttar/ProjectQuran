@@ -115,53 +115,6 @@ function matches() {
 function updateSearch(q) {
   state.query=q;state.limit=24;state.hits=findPassages(q,db,index,meta);$('#matches').innerHTML=matches();
 }
-const openTip = document.getElementById('open-tip');
-const tipDialog = document.getElementById('tip-dialog');
-openTip.hidden = !window.Capacitor?.isPluginAvailable?.('QuranTip');
-openTip.addEventListener('click', async () => {
-  tipDialog.showModal();
-  const button = tipDialog.querySelector('[data-tip-buy]');
-  const status = tipDialog.querySelector('[data-tip-status]');
-  if (button.dataset.busy || button.dataset.loading) return;
-  button.dataset.loading = 'true';
-  button.disabled = true;
-  button.textContent = 'Give a one-time tip';
-  status.textContent = 'Checking the App Store price…';
-  try {
-    const offer = await window.Capacitor.Plugins.QuranTip.price();
-    button.textContent = 'Give a one-time tip · ' + offer.price;
-    status.textContent = '';
-    button.disabled = false;
-  } catch (error) {
-    status.textContent = error?.code === 'TIP_NOT_AVAILABLE'
-      ? 'The App Store has no tip available for this storefront. Close and reopen Support Pockett Quran to try again.'
-      : 'Apple pricing is unavailable. Close and reopen Support Pockett Quran to try again.';
-    if (error?.code?.startsWith('STOREKIT:')) {
-      status.textContent += ' (' + error.code.slice(9) + ')';
-    }
-  } finally {
-    delete button.dataset.loading;
-  }
-});
-
-document.addEventListener('click', async event => {
-  const button = event.target.closest?.('[data-tip-buy]');
-  if (!button || button.disabled || button.dataset.busy) return;
-  const status = button.parentElement.querySelector('[data-tip-status]');
-  button.dataset.busy = 'true';
-  button.disabled = true;
-  try {
-    const result = await window.Capacitor.Plugins.QuranTip.purchase();
-    const messages = {paid:'Thank you for supporting Pockett Quran.', pending:'Your tip is awaiting approval.'};
-    status.textContent = messages[result.status] || '';
-  } catch {
-    status.textContent = 'The tip could not be confirmed. You can continue reading.';
-  } finally {
-    delete button.dataset.busy;
-    button.disabled = false;
-  }
-});
-
 function readingSettings() {
   return `<div class="settings"><label>Translation<select id="language">${[['both','English + Urdu'],['ar','Arabic only'],['en','English · Pickthall'],['ur','Urdu · Junagarhi']].map(([id,text])=>`<option value="${id}" ${language===id?'selected':''}>${text}</option>`).join('')}</select></label>
     <div><span class="field-label">Arabic text size</span><div class="zoom"><button data-size="-2" aria-label="Decrease Arabic size" ${arabicSize<=28?'disabled':''}>A−</button><output>${arabicSize} px</output><button data-size="2" aria-label="Increase Arabic size" ${arabicSize>=52?'disabled':''}>A+</button></div></div></div>`;
