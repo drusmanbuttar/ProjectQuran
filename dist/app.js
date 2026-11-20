@@ -115,9 +115,51 @@ function matches() {
 function updateSearch(q) {
   state.query=q;state.limit=24;state.hits=findPassages(q,db,index,meta);$('#matches').innerHTML=matches();
 }
+function supportTipSettings() {
+  if (!window.Capacitor?.isPluginAvailable?.('QuranTip')) return '';
+  return `<details data-tip-panel><summary>Support Pockett Quran</summary>
+    <p>Pockett Quran is free to read and listen to. An optional, one-time tip supports research, content review, and development. Every feature is free for everyone.</p>
+    <button type="button" data-tip-buy disabled>Give a one-time tip</button>
+    <p role="status" data-tip-status></p></details>`;
+}
+
+document.addEventListener('toggle', async event => {
+  const panel = event.target;
+  if (!panel.matches?.('[data-tip-panel]') || !panel.open) return;
+  const button = panel.querySelector('[data-tip-buy]');
+  const status = panel.querySelector('[data-tip-status]');
+  if (button.dataset.busy) return;
+  button.disabled = true;
+  try {
+    const offer = await window.Capacitor.Plugins.QuranTip.price();
+    button.textContent = 'Give a one-time tip · ' + offer.price;
+    button.disabled = false;
+  } catch {
+    status.textContent = 'Apple pricing is unavailable. Reopen this section to try again.';
+  }
+}, true);
+
+document.addEventListener('click', async event => {
+  const button = event.target.closest?.('[data-tip-buy]');
+  if (!button || button.disabled || button.dataset.busy) return;
+  const status = button.parentElement.querySelector('[data-tip-status]');
+  button.dataset.busy = 'true';
+  button.disabled = true;
+  try {
+    const result = await window.Capacitor.Plugins.QuranTip.purchase();
+    const messages = {paid:'Thank you for supporting Pockett Quran.', pending:'Your tip is awaiting approval.'};
+    status.textContent = messages[result.status] || '';
+  } catch {
+    status.textContent = 'The tip could not be confirmed. You can continue reading.';
+  } finally {
+    delete button.dataset.busy;
+    button.disabled = false;
+  }
+});
+
 function readingSettings() {
   return `<div class="settings"><label>Translation<select id="language">${[['both','English + Urdu'],['ar','Arabic only'],['en','English · Pickthall'],['ur','Urdu · Junagarhi']].map(([id,text])=>`<option value="${id}" ${language===id?'selected':''}>${text}</option>`).join('')}</select></label>
-    <div><span class="field-label">Arabic text size</span><div class="zoom"><button data-size="-2" aria-label="Decrease Arabic size" ${arabicSize<=28?'disabled':''}>A−</button><output>${arabicSize} px</output><button data-size="2" aria-label="Increase Arabic size" ${arabicSize>=52?'disabled':''}>A+</button></div></div></div>`;
+    <div><span class="field-label">Arabic text size</span><div class="zoom"><button data-size="-2" aria-label="Decrease Arabic size" ${arabicSize<=28?'disabled':''}>A−</button><output>${arabicSize} px</output><button data-size="2" aria-label="Increase Arabic size" ${arabicSize>=52?'disabled':''}>A+</button></div></div>${supportTipSettings()}</div>`;
 }
 let recitation;
 function closeRecitation() {
