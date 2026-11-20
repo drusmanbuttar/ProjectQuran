@@ -79,6 +79,33 @@ jobs:
           api.call(path+'/relationships/builds', {}, {data:[{type:'builds',id:build['id']}]}) unless listed.call
           abort('Group build was not confirmed') unless listed.call
           puts 'Verified build 26 in Pockett Quran Owner Testing'
+          older = api.call('builds', {'filter[app]'=>app,'filter[version]'=>'25','include'=>'preReleaseVersion'})
+          release_ids = older.fetch('included',[]).select { |v| v.dig('attributes','version')=='1.1.2' && v.dig('attributes','platform')=='IOS' }.map { |v| v['id'] }
+          prior = older.fetch('data').select { |v| release_ids.include?(v.dig('relationships','preReleaseVersion','data','id')) }
+          abort('Ambiguous previous build') unless prior.one?
+          owner_rows=api.call('users',{'filter[roles]'=>'ACCOUNT_HOLDER'}).fetch('data').select { |v| Array(v.dig('attributes','roles')).include?('ACCOUNT_HOLDER') }
+          abort('Ambiguous account holder') unless owner_rows.one?
+          owner=owner_rows.first.dig('attributes','username')
+          abort('Missing holder account') if owner.to_s.empty?
+          [prior.first,build].each do |v|
+            det = api.call("builds/#{v['id']}/buildBetaDetail").fetch('data').fetch('attributes')
+            a = v.fetch('attributes')
+            puts "Compare build=#{a['version']} minOS=#{a['minOsVersion']} processing=#{a['processingState']} expired=#{a['expired']} internal=#{det['internalBuildState']}"
+          end
+          groups.select { |g| g.dig('attributes','isInternalGroup') }.each_with_index do |g,i|
+            root="betaGroups/#{g['id']}"
+            members=api.call(root+'/betaTesters',{'limit'=>'200'}).fetch('data')
+            has_owner=members.any? { |m| m.dig('attributes','email').to_s.casecmp?(owner) }
+            versions=api.call(root+'/builds',{'limit'=>'200'}).fetch('data').map { |v| v['id'] }
+            before=versions.include?(prior.first['id'])
+            after=versions.include?(build['id'])
+            puts "Compare group=#{i+1} namedOwnerGroup=#{g['id']==group.first['id']} testers=#{members.size} holder=#{has_owner} old=#{before} new=#{after}"
+            if members.one? && has_owner && before && !after
+              api.call(root+'/relationships/builds',{}, {data:[{type:'builds',id:build['id']}]})
+              abort('Repair not confirmed') unless api.call(root+'/builds',{'limit'=>'200'}).fetch('data').any? { |v| v['id']==build['id'] }
+              puts "Compare fixed build 26 assignment to holder's existing build 25 group"
+            end
+          end
       - name: Record run link
         if: always()
         env:
