@@ -1,0 +1,102 @@
+name: Enable owner TestFlight access for build 25
+on:
+  push:
+    branches: [release/attach-build-25]
+    paths: [.github/workflows/owner-testflight-25.yml]
+permissions:
+  statuses: write
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check and configure owner-only TestFlight access
+        env:
+          KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          KID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISS: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        shell: ruby {0}
+        run: |
+          require 'openssl'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          def enc(bytes)
+            Base64.urlsafe_encode64(bytes, padding: false)
+          end
+          now = Time.now.to_i
+          claims = {iss: ENV.fetch('ISS'), iat: now - 5, exp: now + 300, aud: 'appstoreconnect-v1'}
+          msg = enc({alg:'ES256', kid:ENV.fetch('KID'), typ:'JWT'}.to_json) + '.' + enc(claims.to_json)
+          key = OpenSSL::PKey.read(ENV.fetch('KEY'))
+          sig = OpenSSL::ASN1.decode(key.sign('SHA256', msg)).value.map { |i| i.value.to_s(2).rjust(32, "\0") }.join
+          token = msg + '.' + enc(sig)
+          api = lambda do |path, query = {}, body = nil|
+            uri = URI("https://api.appstoreconnect.apple.com/v1/" + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            req = body ? Net::HTTP::Post.new(uri) : Net::HTTP::Get.new(uri)
+            req['Authorization'] = 'Bearer ' + token
+            if body
+              req['Content-Type'] = 'application/json'
+              req.body = body.to_json
+            end
+            res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
+            unless res.is_a?(Net::HTTPSuccess)
+              codes = JSON.parse(res.body).fetch("errors", []).map { |e| e["code"] } rescue []
+              detail = (JSON.parse(res.body).fetch('errors', []).map { |e| e['detail'] }.join(' ') rescue '').gsub(/[\w.+-]+@[\w.-]+/, '[redacted]').gsub(/[0-9a-f-]{32,}/i,'[id]')
+              abort("Apple detail: #{detail}") if res.code=='409'
+              abort("Apple API #{req.method} #{path.gsub(/[0-9a-f-]{32,}/i,'[id]')} returned #{res.code} #{codes.join(',')}")
+            end
+            res.body.to_s.empty? ? {} : JSON.parse(res.body)
+          end
+          app = '6813873757'
+          builds = api.call('builds', {'filter[app]'=>app,'filter[version]'=>'25','include'=>'preReleaseVersion'})
+          releases = builds.fetch('included', []).select { |v| v['type']=='preReleaseVersions' && v.dig('attributes','version')=='1.1.2' && v.dig('attributes','platform')=='IOS' }.map { |v| v['id'] }
+          matches = builds.fetch('data').select { |b| releases.include?(b.dig('relationships','preReleaseVersion','data','id')) }
+          abort('Expected exactly one matching iOS build') unless matches.one?
+          build = matches.first
+          state = build.dig('attributes','processingState')
+          puts "Apple processing state for 1.1.2 (25): #{state}"
+          abort('Build unavailable') unless state=='VALID' && !build.dig('attributes','expired')
+          detail = api.call("builds/#{build['id']}/buildBetaDetail").fetch('data')
+          puts "Internal testing state: #{detail.dig('attributes','internalBuildState')}"
+          users = api.call('users', {'filter[roles]'=>'ACCOUNT_HOLDER'}).fetch('data')
+          owners = users.select { |u| Array(u.dig('attributes','roles')).include?('ACCOUNT_HOLDER') }
+          abort('Could not uniquely identify the account holder') unless owners.one?
+          email = owners.first.dig('attributes','username')
+          abort('Missing holder Apple Account') unless email.to_s.include?('@')
+          testers = api.call('betaTesters', {'filter[email]'=>email, 'limit'=>'200'}).fetch('data')
+          owner_testers = testers.select { |t| t.dig('attributes','email').to_s.casecmp?(email) }
+          tester = owner_testers.first
+          groups = api.call("apps/#{app}/betaGroups", {'limit'=>'200'}).fetch('data')
+          name = 'Pockett Quran Owner Testing'
+          group = groups.find { |g| g.dig('attributes','name')==name }
+          internal = groups.select { |g| g.dig('attributes','isInternalGroup') }
+          puts "Internal groups: #{internal.length}"
+          if group.nil?
+            body = {data:{type:'betaGroups', attributes:{name:name,isInternalGroup:true},relationships:{app:{data:{type:'apps',id:app}}}}}
+            group = api.call('betaGroups', {}, body).fetch('data')
+          end
+          abort('Group is not internal') unless group.dig('attributes','isInternalGroup')
+          path = "betaGroups/#{group['id']}"
+          members = api.call(path + '/betaTesters', {'limit'=>'200'}).fetch('data')
+          abort('Testing group contains other people') unless members.all? { |m| owner_testers.one? && m['id']==tester['id'] }
+          build_ref = {type:'builds',id:build['id']}
+          listed = ->(kind,id) { api.call(path + '/' + kind).fetch('data').any? { |v| v['id']==id } }
+          api.call(path + '/relationships/builds', {}, {data:[build_ref]})
+          puts 'Apple accepted the request to add build 25 to Pockett Quran Owner Testing.'
+          abort('Build association failed') unless listed.call('builds',build['id'])
+          puts "Verified build 25 in #{group.dig('attributes','name')}"
+          abort('Build staged; tester invitation needs App Store Connect') unless owner_testers.one?
+          tester_ref = {type:'betaTesters',id:tester['id']}
+          api.call(path + '/relationships/betaTesters', {}, {data:[tester_ref]}) if members.empty?
+          abort('Group membership could not be verified') unless listed.call('betaTesters', tester['id']) && listed.call('builds',build['id'])
+          puts 'Verified owner TestFlight group contains both the account holder and build 25.'
+      - name: Record run link
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ job.status }}
+        run: |
+          state=failure
+          if [ "$RESULT" = success ]; then state=success; fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context='Pockett Quran TestFlight access' -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --silent

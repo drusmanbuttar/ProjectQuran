@@ -1,0 +1,62 @@
+name: Attach Pockett Quran build 25
+on:
+  push:
+    branches: [release/attach-build-25]
+    paths: [.github/workflows/attach-build-25.yml]
+permissions: {}
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify Apple's processing state and attach the exact signed build
+        env:
+          KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+          KID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISS: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        shell: ruby {0}
+        run: |
+          require 'openssl'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          def enc(bytes)
+            Base64.urlsafe_encode64(bytes, padding: false)
+          end
+          now = Time.now.to_i
+          claims = {iss: ENV.fetch('ISS'), iat: now - 5, exp: now + 300, aud: 'appstoreconnect-v1'}
+          msg = enc({alg:'ES256', kid:ENV.fetch('KID'), typ:'JWT'}.to_json) + '.' + enc(claims.to_json)
+          key = OpenSSL::PKey.read(ENV.fetch('KEY'))
+          sig = OpenSSL::ASN1.decode(key.sign('SHA256', msg)).value.map { |i| i.value.to_s(2).rjust(32, "\0") }.join
+          token = msg + '.' + enc(sig)
+          api = lambda do |path, query = {}, body = nil|
+            uri = URI("https://api.appstoreconnect.apple.com/v1/" + path)
+            uri.query = URI.encode_www_form(query) unless query.empty?
+            req = body ? Net::HTTP::Patch.new(uri) : Net::HTTP::Get.new(uri)
+            req['Authorization'] = 'Bearer ' + token
+            if body
+              req['Content-Type'] = 'application/json'
+              req.body = body.to_json
+            end
+            res = Net::HTTP.start(uri.host, uri.port, use_ssl: true) { |http| http.request(req) }
+            abort("Apple API #{req.method} #{path} returned #{res.code}") unless res.is_a?(Net::HTTPSuccess)
+            res.body.to_s.empty? ? {} : JSON.parse(res.body)
+          end
+          app = '6813873757'
+          builds = api.call('builds', {'filter[app]'=>app,'filter[version]'=>'25','include'=>'preReleaseVersion'})
+          releases = builds.fetch('included', []).select { |v| v['type']=='preReleaseVersions' && v.dig('attributes','version')=='1.1.2' && v.dig('attributes','platform')=='IOS' }.map { |v| v['id'] }
+          matches = builds.fetch('data').select { |b| releases.include?(b.dig('relationships','preReleaseVersion','data','id')) }
+          abort('Expected exactly one matching iOS build') unless matches.one?
+          build = matches.first
+          state = build.dig('attributes','processingState')
+          puts "Apple processing state for 1.1.2 (25): #{state}"
+          abort('Build unavailable') unless state=='VALID' && !build.dig('attributes','expired')
+          versions = api.call("apps/#{app}/appStoreVersions", {'filter[versionString]'=>'1.1.2','filter[platform]'=>'IOS'}).fetch('data')
+          abort('Expected one matching store version') unless versions.one?
+          path = "appStoreVersions/#{versions.first.fetch('id')}/relationships/build"
+          target = {'type'=>'builds','id'=>build.fetch('id')}
+          current = api.call(path)['data']
+          abort('Another build is already attached') if current && current != target
+          api.call(path, {}, {data:target}) unless current
+          abort('Attachment verification failed') unless api.call(path)['data']==target
+          puts 'Apple confirmed build 25 is attached to Pockett Quran 1.1.2.'
