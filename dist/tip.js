@@ -34,14 +34,14 @@ openTip.addEventListener('click', async () => {
   const status = tipDialog.querySelector('[data-tip-status]');
   if (!window.Capacitor?.isPluginAvailable?.('QuranTip')) {
     button.hidden = true;
-    status.textContent = 'The tip uses Apple in-app purchases on iOS.';
+    status.textContent = 'Tips are available through the Pockett Quran mobile app.';
     return;
   }
   if (button.dataset.busy || button.dataset.loading) return;
   button.dataset.loading = 'true';
   button.disabled = true;
   button.textContent = 'Give a one-time tip';
-  status.textContent = 'Checking the App Store price…';
+  status.textContent = 'Checking the store price…';
   try {
     const offer = await window.Capacitor.Plugins.QuranTip.price();
     button.textContent = 'Give a one-time tip · ' + offer.price;
@@ -49,8 +49,8 @@ openTip.addEventListener('click', async () => {
     button.disabled = false;
   } catch (error) {
     status.textContent = error?.code === 'TIP_NOT_AVAILABLE'
-      ? 'The App Store has no tip available for this storefront. Close and reopen Support Pockett Quran to try again.'
-      : 'Apple pricing is unavailable. Close and reopen Support Pockett Quran to try again.';
+      ? 'The tip is unavailable for this storefront. Close and reopen Support Pockett Quran to try again.'
+      : 'Store pricing is unavailable. Close and reopen Support Pockett Quran to try again.';
     if (error?.code?.startsWith('STOREKIT:')) {
       status.textContent += ' (' + error.code.slice(9) + ')';
     }
