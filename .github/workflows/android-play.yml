@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - main
+      - android/recitation-research-support
     paths:
       - '.release/android/**'
 
@@ -49,8 +50,8 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          export ANDROID_VERSION_CODE=210003
-          export ANDROID_VERSION_NAME="1.1.1"
+          export ANDROID_VERSION_CODE=210004
+          export ANDROID_VERSION_NAME="1.1.2"
           echo "Building Android versionName=${ANDROID_VERSION_NAME} versionCode=${ANDROID_VERSION_CODE}"
           cd android
           ./gradlew bundleRelease
@@ -58,7 +59,7 @@ jobs:
         run: python3 scripts/verify-store-package.py android/app/build/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         with:
-          name: pockett-quran-android-1.1.1-210003
+          name: pockett-quran-android-1.1.2-210004
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
