@@ -134,25 +134,37 @@ function listen(button) {
   const same = recitation?.button === button;
   closeRecitation();
   if (same) return;
-  const row = index.byRef.get(button.dataset.listen);
   const panel = document.createElement('div');
   const caption = document.createElement('p');
-  caption.textContent = 'Abdul Rahman Al-Sudais · AlQuran Cloud · ' + row.ref;
   const audio = document.createElement('audio');
   audio.controls = true;
   audio.style.maxWidth = '100%';
-  audio.setAttribute('aria-label', 'Recitation of ayah ' + row.ref);
   panel.append(caption, audio);
-  button.closest('.verse-head').after(panel);
-  button.setAttribute('aria-expanded', 'true');
-  recitation = {audio, panel, button};
+  const queue = [...button.closest('main').querySelectorAll('[data-listen]')];
+  let position = queue.indexOf(button);
+  function playVerse(current) {
+    const row = index.byRef.get(current.dataset.listen);
+    current.closest('.verse-head').after(panel);
+    current.setAttribute('aria-expanded', 'true');
+    recitation = {audio, panel, button: current};
+    caption.textContent = 'Abdul Rahman Al-Sudais · AlQuran Cloud · ' + row.ref;
+    audio.setAttribute('aria-label', 'Recitation of ayah ' + row.ref);
+    audio.src = 'https://cdn.islamic.network/quran/audio/64/ar.abdurrahmaansudais/' + row.audioNumber + '.mp3';
+    audio.play().catch(() => {
+      if (recitation?.button === current && !audio.error) toast('Tap play to resume recitation.');
+    });
+  }
+  audio.addEventListener('ended', () => {
+    if (recitation?.audio !== audio) return;
+    const next = queue[++position];
+    if (!next?.isConnected) { closeRecitation(); return; }
+    recitation.button.setAttribute('aria-expanded', 'false');
+    playVerse(next);
+  });
   audio.addEventListener('error', () => {
-    if (recitation?.audio === audio) caption.textContent = 'Audio unavailable for ' + row.ref + '. Check your connection and tap Listen again to reopen.';
+    if (recitation?.audio === audio) caption.textContent = 'Audio unavailable for ' + recitation.button.dataset.listen + '. Check your connection and try again.';
   });
-  audio.src = 'https://cdn.islamic.network/quran/audio/64/ar.abdurrahmaansudais/' + row.audioNumber + '.mp3';
-  audio.play().catch(() => {
-    if (recitation?.audio === audio && !audio.error) toast('Tap play in the audio controls to listen.');
-  });
+  playVerse(button);
 }
 function verse(row) {
   const {ref}=row, isSaved=saved.has(ref), isPin=readingPin===ref;
